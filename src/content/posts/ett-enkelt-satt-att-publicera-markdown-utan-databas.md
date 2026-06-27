@@ -5,8 +5,6 @@ date: "2026-06-27"
 tags: []
 ---
 
-# Ett enkelt sätt att publicera Markdown utan databas
-
 Målet med Anteckningsbiblioteket är att det ska vara enkelt att spara idéer, guider och samtal utan att behöva bygga ett stort CMS.
 
 Den enklaste modellen är:

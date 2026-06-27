@@ -1,5 +1,5 @@
 const slugPattern = /^[a-z0-9-]+$/;
-const frontmatterPattern = /^---\s*[\s\S]*?\s*---/;
+const frontmatterPattern = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/;
 
 type ApiRequest = {
   method?: string;
@@ -36,6 +36,42 @@ function stripFrontmatter(markdown: string) {
   return markdown.replace(frontmatterPattern, "").trim();
 }
 
+function getFrontmatter(markdown: string) {
+  const match = markdown.match(frontmatterPattern);
+  if (!match) return undefined;
+
+  return {
+    body: markdown.slice(match[0].length).trimStart(),
+    value: match[0],
+  };
+}
+
+function getFrontmatterTitle(markdown: string) {
+  const frontmatter = getFrontmatter(markdown)?.value;
+  if (!frontmatter) return undefined;
+
+  const match = frontmatter.match(/^title:\s*["']?(.+?)["']?\s*$/m);
+  return match?.[1]?.trim();
+}
+
+function removeDuplicateTitleHeading(markdown: string, title: string) {
+  const frontmatter = getFrontmatter(markdown);
+  const body = frontmatter?.body ?? markdown;
+  const lines = body.split(/\r?\n/);
+  const firstContentIndex = lines.findIndex((line) => line.trim());
+
+  if (firstContentIndex === -1) return markdown;
+
+  const heading = lines[firstContentIndex].match(/^#\s+(.+?)\s*$/);
+  if (!heading || slugify(heading[1]) !== slugify(title)) return markdown;
+
+  lines.splice(firstContentIndex, 1);
+  const updatedBody = lines.join("\n").trimStart();
+
+  if (frontmatter) return `${frontmatter.value.trimEnd()}\n\n${updatedBody}`;
+  return updatedBody;
+}
+
 function getFirstParagraph(markdown: string) {
   return stripFrontmatter(markdown)
     .split(/\n{2,}/)
@@ -54,39 +90,19 @@ function truncateDescription(text: string) {
   return `${text.slice(0, 147).trimEnd()}...`;
 }
 
-function hasFrontmatterField(markdown: string, field: string) {
-  const match = markdown.match(frontmatterPattern);
-  if (!match) return false;
-  return new RegExp(`^${field}\\s*:`, "m").test(match[0]);
-}
-
 function ensureMetadata(markdown: string, title: string) {
+  const frontmatterTitle = getFrontmatterTitle(markdown);
+  const articleTitle = frontmatterTitle ?? title;
+
+  if (frontmatterPattern.test(markdown)) {
+    return removeDuplicateTitleHeading(markdown, articleTitle);
+  }
+
   const today = new Date().toISOString().slice(0, 10);
   const description = truncateDescription(getFirstParagraph(markdown) ?? "");
+  const body = removeDuplicateTitleHeading(markdown, title);
 
-  if (!frontmatterPattern.test(markdown)) {
-    return `---\ntitle: "${title.replace(/"/g, '\\"')}"\ndescription: "${description.replace(/"/g, '\\"')}"\ndate: "${today}"\ntags: []\n---\n\n${markdown}`;
-  }
-
-  const frontmatter = markdown.match(frontmatterPattern)?.[0] ?? "---\n---";
-  const body = stripFrontmatter(markdown);
-  const additions: string[] = [];
-
-  if (!hasFrontmatterField(markdown, "description")) {
-    additions.push(`description: "${description.replace(/"/g, '\\"')}"`);
-  }
-
-  if (!hasFrontmatterField(markdown, "date")) {
-    additions.push(`date: "${today}"`);
-  }
-
-  if (additions.length === 0) return markdown;
-
-  const updatedFrontmatter = frontmatter.replace(
-    /\s*---\s*$/,
-    `\n${additions.join("\n")}\n---`,
-  );
-  return `${updatedFrontmatter}\n\n${body}`;
+  return `---\ntitle: "${title.replace(/"/g, '\\"')}"\ndescription: "${description.replace(/"/g, '\\"')}"\ndate: "${today}"\ntags: []\n---\n\n${body}`;
 }
 
 function parseBody(body: ApiRequest["body"]) {
