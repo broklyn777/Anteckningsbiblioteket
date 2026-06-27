@@ -80,6 +80,18 @@ function insertFrontmatterFields(markdown: string, fields: string[]) {
   return markdown.replace(/^---\r?\n/, `---\n${fields.join("\n")}\n`);
 }
 
+function normalizeFrontmatterTagBullets(markdown: string) {
+  const frontmatter = getFrontmatter(markdown);
+  if (!frontmatter) return markdown;
+
+  const normalizedFrontmatter = frontmatter.value.replace(
+    /^(\s*)\*\s+(.+)$/gm,
+    (_line, indent: string, value: string) => `${indent || "  "}- ${value.trim()}`,
+  );
+
+  return `${normalizedFrontmatter}${frontmatter.body}`;
+}
+
 function removeDuplicateTitleHeading(markdown: string, title: string) {
   const frontmatter = getFrontmatter(markdown);
   const body = frontmatter?.body ?? markdown;
@@ -171,9 +183,10 @@ function ensureMetadata(markdown: string, title: string) {
   const articleTitle = frontmatterTitle ?? title;
 
   if (frontmatterPattern.test(markdown)) {
-    const frontmatter = getFrontmatter(markdown)?.value ?? "";
+    const normalizedMarkdown = normalizeFrontmatterTagBullets(markdown);
+    const frontmatter = getFrontmatter(normalizedMarkdown)?.value ?? "";
     const missingFields: string[] = [];
-    const body = stripFrontmatter(markdown);
+    const body = stripFrontmatter(normalizedMarkdown);
 
     if (!hasFrontmatterField(frontmatter, "title")) {
       missingFields.push(`title: "${title.replace(/"/g, '\\"')}"`);
@@ -193,7 +206,10 @@ function ensureMetadata(markdown: string, title: string) {
       missingFields.push("tags: []");
     }
 
-    const markdownWithRequiredFields = insertFrontmatterFields(markdown, missingFields);
+    const markdownWithRequiredFields = insertFrontmatterFields(
+      normalizedMarkdown,
+      missingFields,
+    );
 
     return removeDuplicateTitleHeading(markdownWithRequiredFields, articleTitle);
   }
