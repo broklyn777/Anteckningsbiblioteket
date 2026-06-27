@@ -17,6 +17,44 @@ sidor automatiskt utan manuell routing.
 
 Klart. Vercel bygger om sidan och artikeln får en egen URL.
 
+## Admin-import
+
+Det finns också ett enkelt adminläge på:
+
+```text
+/admin
+```
+
+Där kan du klistra in färdig Markdown, skriva en slug och klicka
+`Publicera`. Serverfunktionen skapar då filen i GitHub:
+
+```text
+src/content/posts/<slug>.md
+```
+
+De filerna visas automatiskt på:
+
+```text
+/posts/<slug>/
+```
+
+Admin-importen använder ingen databas. Den skriver bara en ny Markdown-fil till
+GitHub med GitHub Contents API.
+
+### Environment variables
+
+Sätt dessa i Vercel:
+
+```text
+GITHUB_TOKEN=...
+ADMIN_PASSWORD=...
+GITHUB_REPO=broklyn777/Anteckningsbiblioteket
+GITHUB_BRANCH=main
+```
+
+`GITHUB_TOKEN` behöver rättighet att skapa filer i repot. `ADMIN_PASSWORD` är
+lösenordet du skriver in på `/admin`.
+
 ## Exempel
 
 Skapa filen:

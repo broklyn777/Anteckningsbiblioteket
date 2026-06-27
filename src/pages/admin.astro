@@ -1,0 +1,255 @@
+---
+const hasPassword = Boolean(import.meta.env.ADMIN_PASSWORD);
+---
+
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Admin | Anteckningsbiblioteket</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f8f7f3;
+        --surface: #ffffff;
+        --text: #20211f;
+        --muted: #656960;
+        --line: #dedbd2;
+        --accent: #1b6b5d;
+        --danger: #a73535;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        line-height: 1.5;
+        margin: 0;
+      }
+
+      main {
+        margin: 0 auto;
+        max-width: 860px;
+        padding: 42px 18px 72px;
+      }
+
+      a {
+        color: var(--accent);
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 7vw, 3.4rem);
+        letter-spacing: 0;
+        line-height: 1.1;
+        margin: 16px 0 10px;
+      }
+
+      p {
+        color: var(--muted);
+        margin: 0 0 24px;
+      }
+
+      form {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        display: grid;
+        gap: 16px;
+        padding: 18px;
+      }
+
+      label {
+        display: grid;
+        font-weight: 750;
+        gap: 7px;
+      }
+
+      input,
+      textarea {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--text);
+        font: inherit;
+        padding: 12px 13px;
+        width: 100%;
+      }
+
+      textarea {
+        min-height: 420px;
+        resize: vertical;
+      }
+
+      input:focus,
+      textarea:focus {
+        border-color: var(--accent);
+        outline: 3px solid rgba(27, 107, 93, 0.16);
+      }
+
+      button {
+        background: var(--accent);
+        border: 0;
+        border-radius: 8px;
+        color: #ffffff;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 800;
+        min-height: 46px;
+        padding: 12px 16px;
+      }
+
+      button:disabled {
+        cursor: wait;
+        opacity: 0.7;
+      }
+
+      .hint {
+        color: var(--muted);
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+
+      .status {
+        border-radius: 8px;
+        display: none;
+        margin-top: 16px;
+        padding: 14px;
+      }
+
+      .status.is-visible {
+        display: block;
+      }
+
+      .status.success {
+        background: #e8f5ef;
+        color: #145143;
+      }
+
+      .status.error {
+        background: #f7e8e8;
+        color: var(--danger);
+      }
+
+      .warning {
+        background: #fff7df;
+        border: 1px solid #ead99d;
+        border-radius: 8px;
+        color: #6d560f;
+        margin-bottom: 18px;
+        padding: 12px 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a href="/">Tillbaka till webbplatsen</a>
+      <h1>Publicera Markdown</h1>
+      <p>
+        Klistra in en färdig artikel. Filen skapas i GitHub som
+        <code>src/content/posts/&lt;slug&gt;.md</code>.
+      </p>
+
+      {
+        !hasPassword && (
+          <p class="warning">
+            ADMIN_PASSWORD saknas lokalt. Formuläret fungerar först när
+            environment variables är satta.
+          </p>
+        )
+      }
+
+      <form data-admin-form>
+        <label>
+          Adminlösenord
+          <input
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+        </label>
+
+        <label>
+          Filnamn/slug
+          <input
+            name="slug"
+            type="text"
+            inputmode="url"
+            pattern="[a-z0-9-]+"
+            placeholder="hur-rag-fungerar"
+            required
+          />
+          <span class="hint">Endast små bokstäver, siffror och bindestreck.</span>
+        </label>
+
+        <label>
+          Markdown
+          <textarea
+            name="markdown"
+            placeholder={`---\ntitle: \"Hur fungerar RAG?\"\ntags:\n  - AI\n  - RAG\n---\n\nSkriv artikeln här.`}
+            required></textarea>
+        </label>
+
+        <button type="submit">Publicera</button>
+      </form>
+
+      <div class="status" data-status role="status" aria-live="polite"></div>
+    </main>
+
+    <script>
+      const form = document.querySelector("[data-admin-form]");
+      const status = document.querySelector("[data-status]");
+      const button = form.querySelector("button");
+
+      function showStatus(type, message) {
+        status.className = `status is-visible ${type}`;
+        status.textContent = message;
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        button.disabled = true;
+        showStatus("success", "Publicerar...");
+
+        const data = new FormData(form);
+        const payload = {
+          password: data.get("password"),
+          slug: data.get("slug"),
+          markdown: data.get("markdown"),
+        };
+
+        try {
+          const response = await fetch("/api/publish", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const result = await response.json();
+
+          if (!response.ok) {
+            showStatus("error", result.error ?? "Publiceringen misslyckades.");
+            return;
+          }
+
+          form.reset();
+          showStatus(
+            "success",
+            `Publicerad: ${result.path}. Vercel bygger om automatiskt.`,
+          );
+        } catch {
+          showStatus("error", "Kunde inte kontakta serverfunktionen.");
+        } finally {
+          button.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
