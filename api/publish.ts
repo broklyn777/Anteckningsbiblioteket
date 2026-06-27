@@ -1,12 +1,16 @@
+import { isValidSession } from "./_session";
+
 const slugPattern = /^[a-z0-9-]+$/;
 const frontmatterPattern = /^---\s*[\s\S]*?\s*---/;
 
 type ApiRequest = {
   method?: string;
+  headers?: {
+    cookie?: string;
+  };
   body?:
     | string
     | {
-        password?: unknown;
         title?: unknown;
         markdown?: unknown;
       };
@@ -92,7 +96,6 @@ function ensureMetadata(markdown: string, title: string) {
 function parseBody(body: ApiRequest["body"]) {
   if (typeof body === "string") {
     return JSON.parse(body) as {
-      password?: unknown;
       title?: unknown;
       markdown?: unknown;
     };
@@ -120,6 +123,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       .json({ error: "Servern saknar GITHUB_TOKEN eller ADMIN_PASSWORD." });
   }
 
+  if (!isValidSession(req)) {
+    return res.status(401).json({ error: "Du är inte inloggad." });
+  }
+
   let body: ReturnType<typeof parseBody>;
 
   try {
@@ -128,14 +135,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     return res.status(400).json({ error: "Ogiltig JSON." });
   }
 
-  const password = String(body.password ?? "");
   const title = String(body.title ?? "").trim();
   const rawMarkdown = String(body.markdown ?? "").trim();
   const slug = slugify(title);
-
-  if (password !== ADMIN_PASSWORD) {
-    return res.status(401).json({ error: "Fel adminlösenord." });
-  }
 
   if (!title) {
     return res.status(400).json({ error: "Titel får inte vara tom." });

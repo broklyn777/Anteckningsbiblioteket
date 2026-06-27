@@ -26,11 +26,29 @@ const {
     <header class="site-header">
       <nav class="nav" aria-label="Huvudnavigation">
         <a class="brand" href="/">Anteckningsbiblioteket</a>
-        <a href="/">Alla artiklar</a>
+        <div class="nav-links">
+          <a href="/">Alla artiklar</a>
+          <a href="/admin/" data-admin-link hidden>Admin</a>
+        </div>
       </nav>
     </header>
     <main>
       <slot />
     </main>
+    <script>
+      const adminLink = document.querySelector("[data-admin-link]");
+
+      async function updateAdminLink() {
+        try {
+          const response = await fetch("/api/session");
+          const result = await response.json();
+          adminLink.hidden = !result.authenticated;
+        } catch {
+          adminLink.hidden = true;
+        }
+      }
+
+      updateAdminLink();
+    </script>
   </body>
 </html>

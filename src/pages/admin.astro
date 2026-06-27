@@ -67,6 +67,11 @@ const hasPassword = Boolean(import.meta.env.ADMIN_PASSWORD);
         padding: 18px;
       }
 
+      .admin-panel {
+        display: grid;
+        gap: 16px;
+      }
+
       label {
         display: grid;
         font-weight: 750;
@@ -109,6 +114,24 @@ const hasPassword = Boolean(import.meta.env.ADMIN_PASSWORD);
       button:disabled {
         cursor: wait;
         opacity: 0.7;
+      }
+
+      .top-row {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: space-between;
+      }
+
+      .secondary-button {
+        background: transparent;
+        border: 1px solid var(--line);
+        color: var(--text);
+      }
+
+      [hidden] {
+        display: none !important;
       }
 
       .hint {
@@ -166,7 +189,7 @@ const hasPassword = Boolean(import.meta.env.ADMIN_PASSWORD);
         )
       }
 
-      <form data-admin-form>
+      <form data-login-form>
         <label>
           Adminlösenord
           <input
@@ -177,6 +200,18 @@ const hasPassword = Boolean(import.meta.env.ADMIN_PASSWORD);
           />
         </label>
 
+        <button type="submit">Logga in</button>
+      </form>
+
+      <section class="admin-panel" data-admin-panel hidden>
+        <div class="top-row">
+          <strong>Inloggad</strong>
+          <button class="secondary-button" type="button" data-logout>
+            Logga ut
+          </button>
+        </div>
+
+        <form data-admin-form>
         <label>
           Titel
           <input name="title" type="text" placeholder="Hur fungerar RAG?" required />
@@ -192,15 +227,25 @@ const hasPassword = Boolean(import.meta.env.ADMIN_PASSWORD);
         </label>
 
         <button type="submit">Publicera</button>
-      </form>
+        </form>
+      </section>
 
       <div class="status" data-status role="status" aria-live="polite"></div>
     </main>
 
     <script>
+      const loginForm = document.querySelector("[data-login-form]");
       const form = document.querySelector("[data-admin-form]");
+      const adminPanel = document.querySelector("[data-admin-panel]");
       const status = document.querySelector("[data-status]");
       const button = form.querySelector("button");
+      const loginButton = loginForm.querySelector("button");
+      const logoutButton = document.querySelector("[data-logout]");
+
+      function setLoggedIn(isLoggedIn) {
+        loginForm.hidden = isLoggedIn;
+        adminPanel.hidden = !isLoggedIn;
+      }
 
       function showStatus(type, message) {
         status.className = `status is-visible ${type}`;
@@ -214,6 +259,61 @@ const hasPassword = Boolean(import.meta.env.ADMIN_PASSWORD);
         status.append(message);
       }
 
+      async function refreshSession() {
+        try {
+          const response = await fetch("/api/session");
+          const result = await response.json();
+          setLoggedIn(Boolean(result.authenticated));
+        } catch {
+          setLoggedIn(false);
+        }
+      }
+
+      loginForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        loginButton.disabled = true;
+        showStatus("success", "Loggar in...");
+
+        const data = new FormData(loginForm);
+
+        try {
+          const response = await fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ password: data.get("password") }),
+          });
+          const result = await response.json();
+
+          if (!response.ok) {
+            showStatus("error", result.error ?? "Inloggningen misslyckades.");
+            return;
+          }
+
+          loginForm.reset();
+          setLoggedIn(true);
+          showStatus("success", "Inloggad.");
+        } catch {
+          showStatus("error", "Kunde inte kontakta serverfunktionen.");
+        } finally {
+          loginButton.disabled = false;
+        }
+      });
+
+      logoutButton.addEventListener("click", async () => {
+        logoutButton.disabled = true;
+
+        try {
+          await fetch("/api/logout", { method: "POST" });
+          form.reset();
+          setLoggedIn(false);
+          showStatus("success", "Du är utloggad.");
+        } catch {
+          showStatus("error", "Kunde inte logga ut.");
+        } finally {
+          logoutButton.disabled = false;
+        }
+      });
+
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
         button.disabled = true;
@@ -221,7 +321,6 @@ const hasPassword = Boolean(import.meta.env.ADMIN_PASSWORD);
 
         const data = new FormData(form);
         const payload = {
-          password: data.get("password"),
           title: data.get("title"),
           markdown: data.get("markdown"),
         };
@@ -235,6 +334,7 @@ const hasPassword = Boolean(import.meta.env.ADMIN_PASSWORD);
           const result = await response.json();
 
           if (!response.ok) {
+            if (response.status === 401) setLoggedIn(false);
             showStatus("error", result.error ?? "Publiceringen misslyckades.");
             return;
           }
@@ -259,6 +359,8 @@ const hasPassword = Boolean(import.meta.env.ADMIN_PASSWORD);
           button.disabled = false;
         }
       });
+
+      refreshSession();
     </script>
   </body>
 </html>

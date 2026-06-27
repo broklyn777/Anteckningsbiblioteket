@@ -32,6 +32,10 @@ fylla i:
 - Titel
 - Markdown
 
+När lösenordet är korrekt sparas en httpOnly-cookie i webbläsaren. Du förblir
+inloggad när du går tillbaka till webbplatsen, navigationen visar länken
+`Admin`, och på `/admin` finns knappen `Logga ut`.
+
 Slug skapas automatiskt från titeln. Om Markdown saknar frontmatter läggs detta
 till automatiskt:
 

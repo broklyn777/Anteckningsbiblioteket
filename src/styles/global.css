@@ -53,6 +53,12 @@ main {
   min-height: 64px;
 }
 
+.nav-links {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+}
+
 .nav a {
   color: var(--muted);
   font-size: 0.95rem;
