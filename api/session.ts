@@ -13,5 +13,6 @@ type ApiResponse = {
 };
 
 export default function handler(req: ApiRequest, res: ApiResponse) {
-  return res.status(200).json({ authenticated: isValidSession(req) });
+  const authenticated = isValidSession(req);
+  return res.status(200).json({ authenticated });
 }

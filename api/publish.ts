@@ -106,8 +106,11 @@ function parseBody(body: ApiRequest["body"]) {
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== "POST") {
+    console.warn("[api/publish] Method not allowed", req.method);
     res.setHeader("Allow", "POST");
-    return res.status(405).json({ error: "Endast POST stöds." });
+    return res
+      .status(405)
+      .json({ code: "METHOD_NOT_ALLOWED", error: "Endast POST stöds." });
   }
 
   const {
@@ -118,13 +121,23 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   } = process.env;
 
   if (!GITHUB_TOKEN || !ADMIN_PASSWORD) {
+    console.error("[api/publish] Missing env", {
+      hasGithubToken: Boolean(GITHUB_TOKEN),
+      hasAdminPassword: Boolean(ADMIN_PASSWORD),
+    });
     return res
       .status(500)
-      .json({ error: "Servern saknar GITHUB_TOKEN eller ADMIN_PASSWORD." });
+      .json({
+        code: "MISSING_ENV",
+        error: "Servern saknar GITHUB_TOKEN eller ADMIN_PASSWORD.",
+      });
   }
 
   if (!isValidSession(req)) {
-    return res.status(401).json({ error: "Du är inte inloggad." });
+    console.warn("[api/publish] Missing or invalid session");
+    return res
+      .status(401)
+      .json({ code: "NOT_AUTHENTICATED", error: "Du är inte inloggad." });
   }
 
   let body: ReturnType<typeof parseBody>;
@@ -132,7 +145,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
     body = parseBody(req.body);
   } catch {
-    return res.status(400).json({ error: "Ogiltig JSON." });
+    console.warn("[api/publish] Invalid JSON body");
+    return res.status(400).json({ code: "INVALID_JSON", error: "Ogiltig JSON." });
   }
 
   const title = String(body.title ?? "").trim();
@@ -140,15 +154,20 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   const slug = slugify(title);
 
   if (!title) {
-    return res.status(400).json({ error: "Titel får inte vara tom." });
+    return res
+      .status(400)
+      .json({ code: "MISSING_TITLE", error: "Titel får inte vara tom." });
   }
 
   if (!rawMarkdown) {
-    return res.status(400).json({ error: "Markdown får inte vara tom." });
+    return res
+      .status(400)
+      .json({ code: "MISSING_MARKDOWN", error: "Markdown får inte vara tom." });
   }
 
   if (!slug || !slugPattern.test(slug)) {
     return res.status(400).json({
+      code: "INVALID_SLUG",
       error: "Titeln kunde inte göras om till en giltig slug.",
     });
   }
@@ -168,13 +187,20 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   const existingResponse = await fetch(existingUrl, { headers });
 
   if (existingResponse.ok) {
+    console.warn("[api/publish] File already exists", path);
     return res.status(409).json({
+      code: "FILE_EXISTS",
       error: `Det finns redan en artikel med sluggen "${slug}". Ändra titeln och försök igen.`,
     });
   }
 
   if (existingResponse.status !== 404) {
+    console.error("[api/publish] GitHub existence check failed", {
+      status: existingResponse.status,
+      statusText: existingResponse.statusText,
+    });
     return res.status(502).json({
+      code: "GITHUB_CHECK_FAILED",
       error: "Kunde inte kontrollera om filen redan finns i GitHub.",
     });
   }
@@ -191,12 +217,19 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
   if (!createResponse.ok) {
     const details = await createResponse.json().catch(() => undefined);
+    console.error("[api/publish] GitHub create failed", {
+      status: createResponse.status,
+      statusText: createResponse.statusText,
+      message: details?.message,
+    });
     return res.status(createResponse.status).json({
+      code: "GITHUB_CREATE_FAILED",
       error:
         details?.message ??
         "GitHub kunde inte skapa filen. Kontrollera token och repo.",
     });
   }
 
+  console.info("[api/publish] Article created", path);
   return res.status(200).json({ ok: true, path, slug, articleUrl });
 }
