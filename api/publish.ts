@@ -1,16 +1,12 @@
-import { isValidSession } from "./_session";
-
 const slugPattern = /^[a-z0-9-]+$/;
 const frontmatterPattern = /^---\s*[\s\S]*?\s*---/;
 
 type ApiRequest = {
   method?: string;
-  headers?: {
-    cookie?: string;
-  };
   body?:
     | string
     | {
+        password?: unknown;
         title?: unknown;
         markdown?: unknown;
       };
@@ -96,6 +92,7 @@ function ensureMetadata(markdown: string, title: string) {
 function parseBody(body: ApiRequest["body"]) {
   if (typeof body === "string") {
     return JSON.parse(body) as {
+      password?: unknown;
       title?: unknown;
       markdown?: unknown;
     };
@@ -133,13 +130,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       });
   }
 
-  if (!isValidSession(req)) {
-    console.warn("[api/publish] Missing or invalid session");
-    return res
-      .status(401)
-      .json({ code: "NOT_AUTHENTICATED", error: "Du är inte inloggad." });
-  }
-
   let body: ReturnType<typeof parseBody>;
 
   try {
@@ -149,9 +139,17 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     return res.status(400).json({ code: "INVALID_JSON", error: "Ogiltig JSON." });
   }
 
+  const password = String(body.password ?? "");
   const title = String(body.title ?? "").trim();
   const rawMarkdown = String(body.markdown ?? "").trim();
   const slug = slugify(title);
+
+  if (password !== ADMIN_PASSWORD) {
+    console.warn("[api/publish] Invalid password");
+    return res
+      .status(401)
+      .json({ code: "INVALID_PASSWORD", error: "Fel adminlösenord." });
+  }
 
   if (!title) {
     return res

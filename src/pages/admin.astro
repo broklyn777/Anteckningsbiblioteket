@@ -176,7 +176,7 @@
         automatiskt när det behövs.
       </p>
 
-      <form data-login-form>
+      <form data-admin-form>
         <label>
           Adminlösenord
           <input
@@ -187,18 +187,6 @@
           />
         </label>
 
-        <button type="submit">Logga in</button>
-      </form>
-
-      <section class="admin-panel" data-admin-panel hidden>
-        <div class="top-row">
-          <strong>Inloggad</strong>
-          <button class="secondary-button" type="button" data-logout>
-            Logga ut
-          </button>
-        </div>
-
-        <form data-admin-form>
         <label>
           Titel
           <input name="title" type="text" placeholder="Hur fungerar RAG?" required />
@@ -214,25 +202,22 @@
         </label>
 
         <button type="submit">Publicera</button>
-        </form>
-      </section>
+
+        <button class="secondary-button" type="button" data-clear-password hidden>
+          Glöm sparat lösenord
+        </button>
+      </form>
 
       <div class="status" data-status role="status" aria-live="polite"></div>
     </main>
 
     <script>
-      const loginForm = document.querySelector("[data-login-form]");
+      const passwordStorageKey = "anteckningsbiblioteket_admin_password";
       const form = document.querySelector("[data-admin-form]");
-      const adminPanel = document.querySelector("[data-admin-panel]");
       const status = document.querySelector("[data-status]");
-      const button = form.querySelector("button");
-      const loginButton = loginForm.querySelector("button");
-      const logoutButton = document.querySelector("[data-logout]");
-
-      function setLoggedIn(isLoggedIn) {
-        loginForm.hidden = isLoggedIn;
-        adminPanel.hidden = !isLoggedIn;
-      }
+      const publishButton = form.querySelector('button[type="submit"]');
+      const clearPasswordButton = document.querySelector("[data-clear-password]");
+      const passwordInput = form.querySelector('input[name="password"]');
 
       function showStatus(type, message) {
         status.className = `status is-visible ${type}`;
@@ -280,64 +265,29 @@
         return data;
       }
 
-      async function refreshSession() {
-        try {
-          const result = await requestJson("/api/session");
-          setLoggedIn(Boolean(result.authenticated));
-        } catch (error) {
-          console.error(error);
-          setLoggedIn(false);
-        }
+      function loadSavedPassword() {
+        const savedPassword = localStorage.getItem(passwordStorageKey);
+        if (!savedPassword) return;
+
+        passwordInput.value = savedPassword;
+        clearPasswordButton.hidden = false;
       }
 
-      loginForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        loginButton.disabled = true;
-        showStatus("success", "Loggar in...");
-
-        const data = new FormData(loginForm);
-
-        try {
-          await requestJson("/api/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ password: data.get("password") }),
-          });
-
-          loginForm.reset();
-          setLoggedIn(true);
-          showStatus("success", "Inloggad.");
-        } catch (error) {
-          console.error(error);
-          showStatus("error", error.message);
-        } finally {
-          loginButton.disabled = false;
-        }
-      });
-
-      logoutButton.addEventListener("click", async () => {
-        logoutButton.disabled = true;
-
-        try {
-          await requestJson("/api/logout", { method: "POST" });
-          form.reset();
-          setLoggedIn(false);
-          showStatus("success", "Du är utloggad.");
-        } catch (error) {
-          console.error(error);
-          showStatus("error", error.message);
-        } finally {
-          logoutButton.disabled = false;
-        }
+      clearPasswordButton.addEventListener("click", () => {
+        localStorage.removeItem(passwordStorageKey);
+        passwordInput.value = "";
+        clearPasswordButton.hidden = true;
+        showStatus("success", "Sparat lösenord rensades.");
       });
 
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
-        button.disabled = true;
+        publishButton.disabled = true;
         showStatus("success", "Publicerar...");
 
         const data = new FormData(form);
         const payload = {
+          password: data.get("password"),
           title: data.get("title"),
           markdown: data.get("markdown"),
         };
@@ -349,7 +299,11 @@
             body: JSON.stringify(payload),
           });
 
+          localStorage.setItem(passwordStorageKey, String(payload.password ?? ""));
+          clearPasswordButton.hidden = false;
           form.reset();
+          loadSavedPassword();
+
           const wrapper = document.createElement("div");
           const text = document.createElement("p");
           const articleLink = document.createElement("a");
@@ -365,14 +319,13 @@
           showStatus("success", wrapper);
         } catch (error) {
           console.error(error);
-          if (String(error.message).includes("401")) setLoggedIn(false);
           showStatus("error", error.message);
         } finally {
-          button.disabled = false;
+          publishButton.disabled = false;
         }
       });
 
-      refreshSession();
+      loadSavedPassword();
     </script>
   </body>
 </html>
