@@ -153,8 +153,8 @@ const hasPassword = Boolean(import.meta.env.ADMIN_PASSWORD);
       <a href="/">Tillbaka till webbplatsen</a>
       <h1>Publicera Markdown</h1>
       <p>
-        Klistra in en färdig artikel. Filen skapas i GitHub som
-        <code>src/content/posts/&lt;slug&gt;.md</code>.
+        Klistra in en färdig artikel. Slug, datum och frontmatter skapas
+        automatiskt när det behövs.
       </p>
 
       {
@@ -178,23 +178,16 @@ const hasPassword = Boolean(import.meta.env.ADMIN_PASSWORD);
         </label>
 
         <label>
-          Filnamn/slug
-          <input
-            name="slug"
-            type="text"
-            inputmode="url"
-            pattern="[a-z0-9-]+"
-            placeholder="hur-rag-fungerar"
-            required
-          />
-          <span class="hint">Endast små bokstäver, siffror och bindestreck.</span>
+          Titel
+          <input name="title" type="text" placeholder="Hur fungerar RAG?" required />
+          <span class="hint">Slug skapas automatiskt från titeln.</span>
         </label>
 
         <label>
           Markdown
           <textarea
             name="markdown"
-            placeholder={`---\ntitle: \"Hur fungerar RAG?\"\ntags:\n  - AI\n  - RAG\n---\n\nSkriv artikeln här.`}
+            placeholder="Skriv eller klistra in artikeln här. Frontmatter är frivilligt."
             required></textarea>
         </label>
 
@@ -211,7 +204,14 @@ const hasPassword = Boolean(import.meta.env.ADMIN_PASSWORD);
 
       function showStatus(type, message) {
         status.className = `status is-visible ${type}`;
-        status.textContent = message;
+        status.textContent = "";
+
+        if (typeof message === "string") {
+          status.textContent = message;
+          return;
+        }
+
+        status.append(message);
       }
 
       form.addEventListener("submit", async (event) => {
@@ -222,7 +222,7 @@ const hasPassword = Boolean(import.meta.env.ADMIN_PASSWORD);
         const data = new FormData(form);
         const payload = {
           password: data.get("password"),
-          slug: data.get("slug"),
+          title: data.get("title"),
           markdown: data.get("markdown"),
         };
 
@@ -240,10 +240,19 @@ const hasPassword = Boolean(import.meta.env.ADMIN_PASSWORD);
           }
 
           form.reset();
-          showStatus(
-            "success",
-            `Publicerad: ${result.path}. Vercel bygger om automatiskt.`,
-          );
+          const wrapper = document.createElement("div");
+          const text = document.createElement("p");
+          const articleLink = document.createElement("a");
+          const homeLink = document.createElement("a");
+
+          text.textContent = "Artikeln publicerades. Vercel bygger om automatiskt.";
+          articleLink.href = result.articleUrl;
+          articleLink.textContent = "Öppna artikeln";
+          homeLink.href = "/";
+          homeLink.textContent = "Gå till startsidan";
+          wrapper.append(text, articleLink, " · ", homeLink);
+
+          showStatus("success", wrapper);
         } catch {
           showStatus("error", "Kunde inte kontakta serverfunktionen.");
         } finally {

@@ -25,8 +25,26 @@ Det finns också ett enkelt adminläge på:
 /admin
 ```
 
-Där kan du klistra in färdig Markdown, skriva en slug och klicka
-`Publicera`. Serverfunktionen skapar då filen i GitHub:
+Där kan du klistra in färdig Markdown och klicka `Publicera`. Du behöver bara
+fylla i:
+
+- Adminlösenord
+- Titel
+- Markdown
+
+Slug skapas automatiskt från titeln. Om Markdown saknar frontmatter läggs detta
+till automatiskt:
+
+```md
+---
+title: "<Titel>"
+description: "<första stycket>"
+date: "<dagens datum>"
+tags: []
+---
+```
+
+Serverfunktionen skapar sedan filen i GitHub:
 
 ```text
 src/content/posts/<slug>.md

@@ -1,12 +1,15 @@
 const slugPattern = /^[a-z0-9-]+$/;
+const frontmatterPattern = /^---\s*[\s\S]*?\s*---/;
 
 type ApiRequest = {
   method?: string;
-  body?: {
-    password?: unknown;
-    slug?: unknown;
-    markdown?: unknown;
-  };
+  body?:
+    | string
+    | {
+        password?: unknown;
+        title?: unknown;
+        markdown?: unknown;
+      };
 };
 
 type ApiResponse = {
@@ -15,6 +18,88 @@ type ApiResponse = {
     json(data: unknown): void;
   };
 };
+
+function slugify(title: string) {
+  return title
+    .toLocaleLowerCase("sv-SE")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/å/g, "a")
+    .replace(/ä/g, "a")
+    .replace(/ö/g, "o")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
+}
+
+function stripFrontmatter(markdown: string) {
+  return markdown.replace(frontmatterPattern, "").trim();
+}
+
+function getFirstParagraph(markdown: string) {
+  return stripFrontmatter(markdown)
+    .split(/\n{2,}/)
+    .map((paragraph) =>
+      paragraph
+        .replace(/^#+\s+/gm, "")
+        .replace(/[*_`[\]()>#-]/g, "")
+        .replace(/\s+/g, " ")
+        .trim(),
+    )
+    .find(Boolean);
+}
+
+function truncateDescription(text: string) {
+  if (text.length <= 150) return text;
+  return `${text.slice(0, 147).trimEnd()}...`;
+}
+
+function hasFrontmatterField(markdown: string, field: string) {
+  const match = markdown.match(frontmatterPattern);
+  if (!match) return false;
+  return new RegExp(`^${field}\\s*:`, "m").test(match[0]);
+}
+
+function ensureMetadata(markdown: string, title: string) {
+  const today = new Date().toISOString().slice(0, 10);
+  const description = truncateDescription(getFirstParagraph(markdown) ?? "");
+
+  if (!frontmatterPattern.test(markdown)) {
+    return `---\ntitle: "${title.replace(/"/g, '\\"')}"\ndescription: "${description.replace(/"/g, '\\"')}"\ndate: "${today}"\ntags: []\n---\n\n${markdown}`;
+  }
+
+  const frontmatter = markdown.match(frontmatterPattern)?.[0] ?? "---\n---";
+  const body = stripFrontmatter(markdown);
+  const additions: string[] = [];
+
+  if (!hasFrontmatterField(markdown, "description")) {
+    additions.push(`description: "${description.replace(/"/g, '\\"')}"`);
+  }
+
+  if (!hasFrontmatterField(markdown, "date")) {
+    additions.push(`date: "${today}"`);
+  }
+
+  if (additions.length === 0) return markdown;
+
+  const updatedFrontmatter = frontmatter.replace(
+    /\s*---\s*$/,
+    `\n${additions.join("\n")}\n---`,
+  );
+  return `${updatedFrontmatter}\n\n${body}`;
+}
+
+function parseBody(body: ApiRequest["body"]) {
+  if (typeof body === "string") {
+    return JSON.parse(body) as {
+      password?: unknown;
+      title?: unknown;
+      markdown?: unknown;
+    };
+  }
+
+  return body ?? {};
+}
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== "POST") {
@@ -35,29 +120,40 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       .json({ error: "Servern saknar GITHUB_TOKEN eller ADMIN_PASSWORD." });
   }
 
-  const password = String(req.body?.password ?? "");
-  const slug = String(req.body?.slug ?? "").trim();
-  const markdown = String(req.body?.markdown ?? "").trim();
+  let body: ReturnType<typeof parseBody>;
+
+  try {
+    body = parseBody(req.body);
+  } catch {
+    return res.status(400).json({ error: "Ogiltig JSON." });
+  }
+
+  const password = String(body.password ?? "");
+  const title = String(body.title ?? "").trim();
+  const rawMarkdown = String(body.markdown ?? "").trim();
+  const slug = slugify(title);
 
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: "Fel adminlösenord." });
   }
 
-  if (!slug) {
-    return res.status(400).json({ error: "Slug får inte vara tom." });
+  if (!title) {
+    return res.status(400).json({ error: "Titel får inte vara tom." });
   }
 
-  if (!slugPattern.test(slug)) {
-    return res.status(400).json({
-      error: "Slug får bara innehålla små bokstäver, siffror och bindestreck.",
-    });
-  }
-
-  if (!markdown) {
+  if (!rawMarkdown) {
     return res.status(400).json({ error: "Markdown får inte vara tom." });
   }
 
+  if (!slug || !slugPattern.test(slug)) {
+    return res.status(400).json({
+      error: "Titeln kunde inte göras om till en giltig slug.",
+    });
+  }
+
+  const markdown = ensureMetadata(rawMarkdown, title);
   const path = `src/content/posts/${slug}.md`;
+  const articleUrl = `/posts/${slug}/`;
   const apiUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`;
   const existingUrl = `${apiUrl}?ref=${encodeURIComponent(GITHUB_BRANCH)}`;
   const headers = {
@@ -70,7 +166,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   const existingResponse = await fetch(existingUrl, { headers });
 
   if (existingResponse.ok) {
-    return res.status(409).json({ error: `Filen finns redan: ${path}` });
+    return res.status(409).json({
+      error: `Det finns redan en artikel med sluggen "${slug}". Ändra titeln och försök igen.`,
+    });
   }
 
   if (existingResponse.status !== 404) {
@@ -98,5 +196,5 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     });
   }
 
-  return res.status(200).json({ ok: true, path });
+  return res.status(200).json({ ok: true, path, slug, articleUrl });
 }
