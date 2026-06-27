@@ -12,3 +12,6 @@ dist/
 # System/editor files
 .DS_Store
 *.log
+
+# Local Codex scratch files
+work/
