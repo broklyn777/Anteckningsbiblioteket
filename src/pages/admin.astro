@@ -1,3 +1,24 @@
+---
+import {
+  getArticlePath,
+  getArticleTitle,
+  getSortedArticles,
+} from "../lib/posts";
+
+const deletableArticles = (await getSortedArticles())
+  .filter((article) => article.id.startsWith("posts/"))
+  .map((article) => {
+    const path = getArticlePath(article.id);
+    const filename = article.id.replace(/^posts\//, "");
+
+    return {
+      githubPath: `src/content/posts/${filename}`,
+      title: getArticleTitle(article),
+      url: `/${path}/`,
+    };
+  });
+---
+
 <!doctype html>
 <html lang="sv">
   <head>
@@ -64,6 +85,16 @@
         padding: 18px;
       }
 
+      .delete-panel {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        display: grid;
+        gap: 14px;
+        margin-top: 28px;
+        padding: 18px;
+      }
+
       .admin-panel {
         display: grid;
         gap: 16px;
@@ -76,6 +107,7 @@
       }
 
       input,
+      select,
       textarea {
         border: 1px solid var(--line);
         border-radius: 8px;
@@ -91,6 +123,7 @@
       }
 
       input:focus,
+      select:focus,
       textarea:focus {
         border-color: var(--accent);
         outline: 3px solid rgba(27, 107, 93, 0.16);
@@ -125,6 +158,10 @@
         background: transparent;
         border: 1px solid var(--line);
         color: var(--text);
+      }
+
+      .danger-button {
+        background: var(--danger);
       }
 
       [hidden] {
@@ -265,6 +302,41 @@ Brödtext här.</code></pre>
         </button>
       </form>
 
+      <section class="delete-panel" aria-labelledby="delete-title">
+        <div>
+          <h2 id="delete-title">Radera artikel</h2>
+          <p>
+            Tar bort Markdown-filen från GitHub. Vercel bygger om automatiskt efteråt.
+          </p>
+        </div>
+
+        {
+          deletableArticles.length > 0 ? (
+            <>
+              <label>
+                Artikel
+                <select data-delete-path>
+                  {deletableArticles.map((article) => (
+                    <option value={article.githubPath} data-url={article.url}>
+                      {article.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <button class="danger-button" type="button" data-delete-button>
+                Radera vald artikel
+              </button>
+              <span class="hint">
+                Du får en bekräftelse innan filen tas bort.
+              </span>
+            </>
+          ) : (
+            <p>Det finns inga raderbara artiklar i src/content/posts/.</p>
+          )
+        }
+      </section>
+
       <div class="status" data-status role="status" aria-live="polite"></div>
     </main>
 
@@ -275,6 +347,8 @@ Brödtext här.</code></pre>
       const publishButton = form.querySelector('button[type="submit"]');
       const clearPasswordButton = document.querySelector("[data-clear-password]");
       const passwordInput = form.querySelector('input[name="password"]');
+      const deleteButton = document.querySelector("[data-delete-button]");
+      const deletePathInput = document.querySelector("[data-delete-path]");
 
       function showStatus(type, message) {
         status.className = `status is-visible ${type}`;
@@ -335,6 +409,60 @@ Brödtext här.</code></pre>
         passwordInput.value = "";
         clearPasswordButton.hidden = true;
         showStatus("success", "Sparat lösenord rensades.");
+      });
+
+      deleteButton?.addEventListener("click", async () => {
+        const path = deletePathInput?.value ?? "";
+        const selectedOption = deletePathInput?.selectedOptions?.[0];
+        const title = selectedOption?.textContent?.trim() ?? "vald artikel";
+        const password = passwordInput.value;
+
+        if (!password) {
+          showStatus("error", "Skriv adminlösenordet först.");
+          passwordInput.focus();
+          return;
+        }
+
+        const confirmed = window.confirm(
+          `Radera "${title}"? Detta tar bort Markdown-filen från GitHub.`,
+        );
+
+        if (!confirmed) return;
+
+        deleteButton.disabled = true;
+        showStatus("success", "Raderar artikel...");
+
+        try {
+          await requestJson("/api/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ password, path }),
+          });
+
+          localStorage.setItem(passwordStorageKey, password);
+          selectedOption?.remove();
+
+          if (deletePathInput && deletePathInput.options.length === 0) {
+            deletePathInput.disabled = true;
+            deleteButton.hidden = true;
+          }
+
+          const wrapper = document.createElement("div");
+          const text = document.createElement("p");
+          const homeLink = document.createElement("a");
+
+          text.textContent = "Artikeln raderades. Vercel bygger om automatiskt.";
+          homeLink.href = "/";
+          homeLink.textContent = "Gå till startsidan";
+          wrapper.append(text, homeLink);
+
+          showStatus("success", wrapper);
+        } catch (error) {
+          console.error(error);
+          showStatus("error", error.message);
+        } finally {
+          deleteButton.disabled = false;
+        }
       });
 
       form.addEventListener("submit", async (event) => {
