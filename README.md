@@ -62,9 +62,40 @@ tags: ["ai", "idéer", "skrivande"]
 Skriv innehållet här.
 ```
 
+Det finns också en mall du kan kopiera:
+
+```text
+src/content/templates/ny-post.md
+```
+
 När filen finns i `src/content/posts/` dyker den upp automatiskt på startsidan
 och får en egen detaljsida. Sökningen letar i titel, beskrivning, taggar och
 brödtext. Taggfilter och sökfält kan kombineras.
+
+## Pusha ändringar själv
+
+När du har lagt till eller ändrat poster i VS Code:
+
+```bash
+npm run build
+git status
+git add .
+git commit -m "Lägg till anteckningar"
+git push
+```
+
+Om det är första pushen från den här mappen:
+
+```bash
+git push -u origin main
+```
+
+VS Code kan också göra samma sak via Source Control-panelen: skriv ett
+commit-meddelande, välj Commit och sedan Sync/Push. Remote är satt till:
+
+```text
+https://github.com/broklyn777/Anteckningsbiblioteket.git
+```
 
 ## Projektstruktur
 
