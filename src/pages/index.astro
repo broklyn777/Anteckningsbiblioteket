@@ -1,0 +1,125 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { formatDate, getPostSlug, getSortedPosts } from "../lib/posts";
+
+const posts = await getSortedPosts();
+const allTags = Array.from(new Set(posts.flatMap((post) => post.data.tags))).sort(
+  (a, b) => a.localeCompare(b, "sv"),
+);
+---
+
+<BaseLayout title="Kunskapsbank" description="Sökbar personlig kunskapsbank.">
+  <section class="hero">
+    <p class="eyebrow">Personlig kunskap och inspiration</p>
+    <h1>Spara det som är värt att hitta igen.</h1>
+    <p>
+      En enkel statisk webb för anteckningar, idéer och samtal som förtjänar
+      ett tydligare hem än ännu en lös textfil.
+    </p>
+  </section>
+
+  <section class="controls" aria-label="Sök och filtrera">
+    <label class="search-label" for="search">Sök</label>
+    <input
+      id="search"
+      class="search-input"
+      type="search"
+      placeholder="Sök i titel, beskrivning, taggar och innehåll"
+      autocomplete="off"
+    />
+
+    <div class="filter-row" aria-label="Taggfilter">
+      <button class="tag-filter is-active" type="button" data-tag="all">
+        Alla
+      </button>
+      {
+        allTags.map((tag) => (
+          <button class="tag-filter" type="button" data-tag={tag}>
+            {tag}
+          </button>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="post-list" aria-live="polite">
+    {
+      posts.map((post) => {
+        const slug = getPostSlug(post.id);
+        const searchable = [
+          post.data.title,
+          post.data.description,
+          post.data.tags.join(" "),
+          post.body,
+        ]
+          .join(" ")
+          .toLocaleLowerCase("sv-SE");
+
+        return (
+          <article
+            class="post-card"
+            data-post-card
+            data-tags={post.data.tags.join(",")}
+            data-search={searchable}
+          >
+            <a href={`/posts/${slug}/`}>
+              <time datetime={post.data.date.toISOString()}>
+                {formatDate(post.data.date)}
+              </time>
+              <h2>{post.data.title}</h2>
+              <p>{post.data.description}</p>
+              <div class="tags" aria-label="Taggar">
+                {post.data.tags.map((tag) => (
+                  <span>{tag}</span>
+                ))}
+              </div>
+            </a>
+          </article>
+        );
+      })
+    }
+  </section>
+
+  <p class="empty-state" data-empty-state hidden>
+    Inga poster matchar sökningen eller filtret.
+  </p>
+
+  <script>
+    const searchInput = document.querySelector("#search");
+    const filterButtons = Array.from(document.querySelectorAll(".tag-filter"));
+    const cards = Array.from(document.querySelectorAll("[data-post-card]"));
+    const emptyState = document.querySelector("[data-empty-state]");
+    let activeTag = "all";
+
+    function updateResults() {
+      const query = searchInput.value.trim().toLocaleLowerCase("sv-SE");
+      let visibleCount = 0;
+
+      for (const card of cards) {
+        const tags = card.dataset.tags.split(",").filter(Boolean);
+        const matchesTag = activeTag === "all" || tags.includes(activeTag);
+        const matchesSearch = !query || card.dataset.search.includes(query);
+        const isVisible = matchesTag && matchesSearch;
+
+        card.hidden = !isVisible;
+        if (isVisible) visibleCount += 1;
+      }
+
+      emptyState.hidden = visibleCount !== 0;
+    }
+
+    searchInput.addEventListener("input", updateResults);
+
+    for (const button of filterButtons) {
+      button.addEventListener("click", () => {
+        activeTag = button.dataset.tag;
+
+        for (const item of filterButtons) {
+          item.classList.toggle("is-active", item === button);
+        }
+
+        updateResults();
+      });
+    }
+  </script>
+</BaseLayout>

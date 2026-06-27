@@ -1,0 +1,21 @@
+---
+title: "Veckans frågor"
+description: "En MDX-post med frågor som kan användas för reflektion och planering."
+date: "2026-06-20"
+tags: ["reflektion", "planering", "mdx"]
+---
+
+export const questions = [
+  "Vad återkommer jag till utan att ha gett det plats?",
+  "Vilken idé förtjänar ett första litet experiment?",
+  "Vad behöver jag sluta bära runt på i huvudet?",
+];
+
+MDX gör att du kan blanda Markdown med enklare komponentlogik senare om du vill.
+Här börjar vi enkelt: en lista med frågor att återvända till.
+
+## Frågor
+
+{questions.map((question) => (
+  <p><strong>Fråga:</strong> {question}</p>
+))}
