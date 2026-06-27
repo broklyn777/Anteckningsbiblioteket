@@ -11,7 +11,7 @@ const articles = defineCollection({
         .replace(/^src\/content\/posts\//, "posts/"),
   }),
   schema: z.object({
-    title: z.string(),
+    title: z.string().optional(),
     description: z.string().optional(),
     date: z.coerce.date().optional(),
     tags: z.array(z.string()).default([]),

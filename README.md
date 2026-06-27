@@ -63,6 +63,38 @@ De filerna visas automatiskt på:
 Admin-importen använder ingen databas. Den skriver bara en ny Markdown-fil till
 GitHub med GitHub Contents API.
 
+### Rekommenderat dokumentformat
+
+För att taggar och beskrivning ska fungera bäst: klistra in artikeln med
+YAML-frontmatter överst.
+
+```md
+---
+title: "Hur fungerar RAG?"
+description: "Kort sammanfattning som visas på artikelkortet."
+date: "2026-06-27"
+tags:
+  - AI
+  - RAG
+  - kunskap
+---
+
+Ingress eller första stycke här.
+
+## Rubrik
+
+Brödtext här.
+```
+
+Viktigt:
+
+- Frontmatter måste börja på första raden med `---`.
+- Klistra helst inte in yttre kodstaket, alltså raden med tre backticks och `md`.
+- `tags` ska vara en YAML-lista, en tagg per rad.
+- Skriv inte en extra `# Titel` direkt efter frontmatter om den är samma som `title`.
+- Om du saknar frontmatter skapas `title`, `description`, `date` och tomma `tags` automatiskt.
+- Väldigt långa texter bör delas upp i flera artiklar eller publiceras via Git.
+
 ### Environment variables
 
 Sätt dessa i Vercel:

@@ -1,4 +1,6 @@
 ---
+title: "Varför läsa tekniska böcker långsamt"
+description: "Tekniska böcker blir mer värdefulla när du läser långsamt, antecknar och använder kunskapen i praktiken."
 tags: ["böcker", "lärande", "teknik", "kunskap"]
 ---
 

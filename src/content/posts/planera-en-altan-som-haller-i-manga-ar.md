@@ -1,17 +1,9 @@
 ---
 title: "Planera en altan som håller i många år"
-description: "md description: \"En genomgång av hur man planerar en altan för att få en hållbar, stabil och lättskött konstruktion.\" tags: \"altan\", \"trädäck\", \"by..."
-date: "2026-06-27"
-tags: []
----
-
-```md
----
 description: "En genomgång av hur man planerar en altan för att få en hållbar, stabil och lättskött konstruktion."
+date: "2026-06-27"
 tags: ["altan", "trädäck", "byggprojekt", "uteplats", "planering"]
 ---
-
-# Planera en altan som håller i många år
 
 Många börjar bygga en altan direkt när virket kommer hem. Det är förståeligt – man vill komma igång. Men de bästa altanerna är nästan alltid resultatet av noggrann planering.
 
@@ -74,4 +66,3 @@ Att dra tomrör redan från början kostar väldigt lite men kan spara mycket ar
 En bra altan handlar inte bara om snygg trall. Det är planeringen, grunden och de små detaljerna som avgör hur nöjd du kommer att vara om fem eller tio år.
 
 En genomtänkt konstruktion kräver lite mer arbete i början, men belöningen är en altan som håller länge och fungerar precis som du tänkt dig.
-```

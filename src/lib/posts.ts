@@ -1,4 +1,7 @@
+import type { CollectionEntry } from "astro:content";
 import { getCollection } from "astro:content";
+
+type Article = CollectionEntry<"articles">;
 
 export async function getSortedArticles() {
   const articles = await getCollection("articles");
@@ -8,7 +11,7 @@ export async function getSortedArticles() {
     const dateB = b.data.date?.getTime() ?? 0;
 
     if (dateA !== dateB) return dateB - dateA;
-    return a.data.title.localeCompare(b.data.title, "sv");
+    return getArticleTitle(a).localeCompare(getArticleTitle(b), "sv");
   });
 }
 
@@ -29,10 +32,17 @@ export function getCategoryLabel(category: string) {
     .replace(/^\p{L}/u, (letter) => letter.toLocaleUpperCase("sv-SE"));
 }
 
-export function getArticleDescription(article: {
-  data: { description?: string; title: string };
-  body?: string;
-}) {
+export function getArticleTitle(article: Article) {
+  if (article.data.title) return article.data.title;
+
+  const heading = article.body?.match(/^#\s+(.+)$/m)?.[1]?.trim();
+  if (heading) return heading;
+
+  const filename = getArticlePath(article.id).split("/").at(-1) ?? "artikel";
+  return getCategoryLabel(filename);
+}
+
+export function getArticleDescription(article: Article) {
   if (article.data.description) return article.data.description;
 
   const firstText = article.body
@@ -42,7 +52,7 @@ export function getArticleDescription(article: {
     .map((line) => line.trim())
     .find(Boolean);
 
-  return firstText ?? article.data.title;
+  return firstText ?? getArticleTitle(article);
 }
 
 export function formatDate(date: Date) {

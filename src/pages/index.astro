@@ -5,6 +5,7 @@ import {
   getArticleCategory,
   getArticleDescription,
   getArticlePath,
+  getArticleTitle,
   getCategoryLabel,
   getSortedArticles,
 } from "../lib/posts";
@@ -80,9 +81,10 @@ const articleLabel = articles.length === 1 ? "artikel" : "artiklar";
       articles.map((article) => {
         const path = getArticlePath(article.id);
         const category = getArticleCategory(article.id);
+        const title = getArticleTitle(article);
         const description = getArticleDescription(article);
         const searchable = [
-          article.data.title,
+          title,
           description,
           category,
           article.data.tags.join(" "),
@@ -108,7 +110,7 @@ const articleLabel = articles.length === 1 ? "artikel" : "artiklar";
                   </time>
                 )}
               </div>
-              <h2>{article.data.title}</h2>
+              <h2>{title}</h2>
               <p>{description}</p>
               <div class="tags" aria-label="Taggar">
                 {article.data.tags.map((tag) => (

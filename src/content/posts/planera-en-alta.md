@@ -1,8 +1,8 @@
 ---
+title: "Varför läsa tekniska böcker långsamt"
+description: "Tekniska böcker blir mer värdefulla när du läser långsamt, antecknar och använder kunskapen i praktiken."
 tags: ["böcker", "lärande", "teknik", "kunskap"]
 ---
-
-# Varför läsa tekniska böcker långsamt
 
 Tekniska böcker skiljer sig från skönlitteratur. Målet är inte att läsa så många sidor som möjligt, utan att verkligen förstå innehållet.
 

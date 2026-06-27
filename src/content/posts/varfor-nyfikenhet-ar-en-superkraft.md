@@ -1,19 +1,13 @@
 ---
 title: "Varför nyfikenhet är en superkraft"
-description: "Titel: Varför nyfikenhet är en superkraft"
+description: "Hur nyfikenhet leder till bättre beslut, snabbare lärande och ett rikare arbetsliv."
 date: "2026-06-27"
-tags: []
+tags:
+  - lärande
+  - psykologi
+  - personlig utveckling
+  - tänkande
 ---
-
-**Titel:** Varför nyfikenhet är en superkraft
-
-**Beskrivning:** Hur nyfikenhet leder till bättre beslut, snabbare lärande och ett rikare arbetsliv.
-
-**Taggar:** lärande, psykologi, personlig utveckling, tänkande
-
----
-
-# Varför nyfikenhet är en superkraft
 
 Det finns många egenskaper som uppskattas i arbetslivet: disciplin, erfarenhet, intelligens och uthållighet. Men en egenskap hamnar ofta i skymundan trots att den driver utveckling på nästan alla områden – nyfikenhet.
 

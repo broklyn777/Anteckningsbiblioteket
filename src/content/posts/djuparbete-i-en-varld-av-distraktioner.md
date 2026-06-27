@@ -1,19 +1,13 @@
 ---
 title: "Djuparbete i en värld av distraktioner"
-description: "Titel: Djuparbete i en värld av distraktioner"
+description: "Varför koncentration blir allt mer värdefull och hur man bygger vanor som gör det lättare att arbeta ostört."
 date: "2026-06-27"
-tags: []
+tags:
+  - produktivitet
+  - fokus
+  - arbete
+  - vanor
 ---
-
-**Titel:** Djuparbete i en värld av distraktioner
-
-**Beskrivning:** Varför koncentration blir allt mer värdefull och hur man bygger vanor som gör det lättare att arbeta ostört.
-
-**Taggar:** produktivitet, fokus, arbete, vanor
-
----
-
-# Djuparbete i en värld av distraktioner
 
 Att kunna fokusera under längre perioder har blivit en av de mest underskattade färdigheterna i dagens arbetsliv. Samtidigt har det blivit svårare än någonsin.
 

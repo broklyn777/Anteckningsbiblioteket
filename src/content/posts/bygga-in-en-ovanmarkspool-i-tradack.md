@@ -1,17 +1,9 @@
 ---
 title: "Bygga in en ovanmarkspool i trädäck"
-description: "md description: \"En guide till hur du bygger in en ovanmarkspool i ett trädäck på ett säkert och hållbart sätt.\" tags: \"pool\", \"trädäck\", \"bestway\"..."
-date: "2026-06-27"
-tags: []
----
-
-```md
----
 description: "En guide till hur du bygger in en ovanmarkspool i ett trädäck på ett säkert och hållbart sätt."
+date: "2026-06-27"
 tags: ["pool", "trädäck", "bestway", "intex", "byggprojekt"]
 ---
-
-# Bygga in en ovanmarkspool i trädäck
 
 Att bygga in en ovanmarkspool i ett trädäck är ett av de bästa sätten att ge poolområdet ett mer exklusivt och genomtänkt utseende. Samtidigt blir poolen enklare att använda eftersom man kan gå direkt ut på däcket istället för att klättra upp och ner för en stege.
 
@@ -104,4 +96,3 @@ De flesta av dessa problem går att undvika med lite planering.
 Att bygga in en ovanmarkspool i ett trädäck är ett projekt som både höjer utseendet och ökar användarvänligheten. Nyckeln är att låta poolen stå på ett stabilt underlag, bygga däcket som en fristående konstruktion och planera för service redan från början.
 
 Resultatet blir ett poolområde som känns mer permanent, är enklare att använda och ger en betydligt trevligare miljö under sommarens alla baddagar.
-```

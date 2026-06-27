@@ -1,5 +1,6 @@
 const slugPattern = /^[a-z0-9-]+$/;
 const frontmatterPattern = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/;
+const maxMarkdownCharacters = 750_000;
 
 type ApiRequest = {
   method?: string;
@@ -36,6 +37,21 @@ function stripFrontmatter(markdown: string) {
   return markdown.replace(frontmatterPattern, "").trim();
 }
 
+function normalizeMarkdownInput(markdown: string) {
+  let normalized = markdown.trim();
+
+  const fencedBlock = normalized.match(/^```(?:md|mdx|markdown)?\s*\n([\s\S]*?)\n```$/i);
+  if (fencedBlock?.[1]) {
+    normalized = fencedBlock[1].trim();
+  }
+
+  if (/^(md|mdx|markdown)\s*\n---\r?\n/i.test(normalized)) {
+    normalized = normalized.replace(/^(md|mdx|markdown)\s*\n/i, "").trim();
+  }
+
+  return normalized;
+}
+
 function getFrontmatter(markdown: string) {
   const match = markdown.match(frontmatterPattern);
   if (!match) return undefined;
@@ -52,6 +68,16 @@ function getFrontmatterTitle(markdown: string) {
 
   const match = frontmatter.match(/^title:\s*["']?(.+?)["']?\s*$/m);
   return match?.[1]?.trim();
+}
+
+function hasFrontmatterField(frontmatter: string, field: string) {
+  return new RegExp(`^${field}:`, "m").test(frontmatter);
+}
+
+function insertFrontmatterFields(markdown: string, fields: string[]) {
+  if (fields.length === 0) return markdown;
+
+  return markdown.replace(/^---\r?\n/, `---\n${fields.join("\n")}\n`);
 }
 
 function removeDuplicateTitleHeading(markdown: string, title: string) {
@@ -90,19 +116,102 @@ function truncateDescription(text: string) {
   return `${text.slice(0, 147).trimEnd()}...`;
 }
 
+function extractLooseMetadata(markdown: string) {
+  const metadata: {
+    body: string;
+    description?: string;
+    tags?: string[];
+    title?: string;
+  } = {
+    body: markdown,
+  };
+  const lines = markdown.split(/\r?\n/);
+  let index = 0;
+  let foundMetadata = false;
+
+  for (; index < lines.length; index += 1) {
+    const line = lines[index].trim();
+    const match = line.match(
+      /^(?:\*\*)?(titel|title|beskrivning|description|taggar|tags):(?:\*\*)?\s*(.+)$/i,
+    );
+
+    if (!line && foundMetadata) continue;
+    if (line === "---" && foundMetadata) continue;
+    if (!match) break;
+
+    foundMetadata = true;
+    const field = match[1].toLocaleLowerCase("sv-SE");
+    const value = match[2].trim();
+
+    if (field === "titel" || field === "title") {
+      metadata.title = value;
+    }
+
+    if (field === "beskrivning" || field === "description") {
+      metadata.description = value;
+    }
+
+    if (field === "taggar" || field === "tags") {
+      metadata.tags = value
+        .split(",")
+        .map((tag) => tag.replace(/^[\s"'[]+|[\s"'\]]+$/g, "").trim())
+        .filter(Boolean);
+    }
+  }
+
+  if (foundMetadata) {
+    metadata.body = lines.slice(index).join("\n").trimStart();
+  }
+
+  return metadata;
+}
+
 function ensureMetadata(markdown: string, title: string) {
   const frontmatterTitle = getFrontmatterTitle(markdown);
   const articleTitle = frontmatterTitle ?? title;
 
   if (frontmatterPattern.test(markdown)) {
-    return removeDuplicateTitleHeading(markdown, articleTitle);
+    const frontmatter = getFrontmatter(markdown)?.value ?? "";
+    const missingFields: string[] = [];
+    const body = stripFrontmatter(markdown);
+
+    if (!hasFrontmatterField(frontmatter, "title")) {
+      missingFields.push(`title: "${title.replace(/"/g, '\\"')}"`);
+    }
+
+    if (!hasFrontmatterField(frontmatter, "description")) {
+      const description = truncateDescription(getFirstParagraph(body) ?? "");
+      missingFields.push(`description: "${description.replace(/"/g, '\\"')}"`);
+    }
+
+    if (!hasFrontmatterField(frontmatter, "date")) {
+      const today = new Date().toISOString().slice(0, 10);
+      missingFields.push(`date: "${today}"`);
+    }
+
+    if (!hasFrontmatterField(frontmatter, "tags")) {
+      missingFields.push("tags: []");
+    }
+
+    const markdownWithRequiredFields = insertFrontmatterFields(markdown, missingFields);
+
+    return removeDuplicateTitleHeading(markdownWithRequiredFields, articleTitle);
   }
 
   const today = new Date().toISOString().slice(0, 10);
-  const description = truncateDescription(getFirstParagraph(markdown) ?? "");
-  const body = removeDuplicateTitleHeading(markdown, title);
+  const looseMetadata = extractLooseMetadata(markdown);
+  const metadataTitle = looseMetadata.title ?? title;
+  const description = truncateDescription(
+    looseMetadata.description ?? getFirstParagraph(looseMetadata.body) ?? "",
+  );
+  const tags = looseMetadata.tags ?? [];
+  const tagsYaml =
+    tags.length > 0
+      ? `\n${tags.map((tag) => `  - "${tag.replace(/"/g, '\\"')}"`).join("\n")}`
+      : " []";
+  const body = removeDuplicateTitleHeading(looseMetadata.body, metadataTitle);
 
-  return `---\ntitle: "${title.replace(/"/g, '\\"')}"\ndescription: "${description.replace(/"/g, '\\"')}"\ndate: "${today}"\ntags: []\n---\n\n${body}`;
+  return `---\ntitle: "${metadataTitle.replace(/"/g, '\\"')}"\ndescription: "${description.replace(/"/g, '\\"')}"\ndate: "${today}"\ntags:${tagsYaml}\n---\n\n${body}`;
 }
 
 function parseBody(body: ApiRequest["body"]) {
@@ -157,7 +266,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
   const password = String(body.password ?? "");
   const title = String(body.title ?? "").trim();
-  const rawMarkdown = String(body.markdown ?? "").trim();
+  const rawMarkdown = normalizeMarkdownInput(String(body.markdown ?? ""));
   const slug = slugify(title);
 
   if (password !== ADMIN_PASSWORD) {
@@ -177,6 +286,14 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     return res
       .status(400)
       .json({ code: "MISSING_MARKDOWN", error: "Markdown får inte vara tom." });
+  }
+
+  if (rawMarkdown.length > maxMarkdownCharacters) {
+    return res.status(413).json({
+      code: "MARKDOWN_TOO_LARGE",
+      error:
+        "Artikeln är för stor för enkel admin-import. Dela upp den i flera artiklar eller publicera filen via Git.",
+    });
   }
 
   if (!slug || !slugPattern.test(slug)) {

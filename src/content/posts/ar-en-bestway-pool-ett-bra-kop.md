@@ -1,19 +1,14 @@
 ---
 title: "Är en Bestway-pool ett bra köp?"
-description: "Titel: Är en Bestwaypool ett bra köp?"
+description: "En genomgång av fördelar, nackdelar och alternativ till Bestway för den som funderar på att köpa en ovanmarkspool i Sverige."
 date: "2026-06-27"
-tags: []
+tags:
+  - pool
+  - bestway
+  - intex
+  - summer waves
+  - köpguide
 ---
-
-**Titel:** Är en Bestway-pool ett bra köp?
-
-**Beskrivning:** En genomgång av fördelar, nackdelar och alternativ till Bestway för den som funderar på att köpa en ovanmarkspool i Sverige.
-
-**Taggar:** pool, bestway, intex, summer waves, köpguide
-
----
-
-# Är en Bestway-pool ett bra köp?
 
 Att skaffa en ovanmarkspool är ett av de mest prisvärda sätten att få ett eget bad hemma. För många familjer kostar en pool mindre än en veckas semester, men kan ge glädje under flera somrar.
 

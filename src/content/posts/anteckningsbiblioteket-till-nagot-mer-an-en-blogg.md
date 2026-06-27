@@ -1,12 +1,9 @@
 ---
-
 title: "Hur jag skulle göra Anteckningsbiblioteket till något mer än en blogg"
 description: "Idéer för att utveckla ett personligt kunskapsbibliotek med interaktiva funktioner, AI och smart navigering utan att förlora enkelheten."
 date: "2026-06-27"
 tags: ["astro", "kunskapsbank", "idéer", "ai", "ux", "utveckling"]
-------------------------------------------------------------------
-
-# Hur jag skulle göra Anteckningsbiblioteket till något mer än en blogg
+---
 
 Det är lätt att bygga en webbplats som visar artiklar.
 

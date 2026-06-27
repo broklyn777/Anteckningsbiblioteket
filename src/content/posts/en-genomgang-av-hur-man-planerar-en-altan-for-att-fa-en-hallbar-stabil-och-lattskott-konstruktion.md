@@ -1,9 +1,8 @@
 ---
+title: "Planera en altan som håller i många år"
 description: "En genomgång av hur man planerar en altan för att få en hållbar, stabil och lättskött konstruktion."
 tags: ["altan", "trädäck", "byggprojekt", "uteplats", "planering"]
 ---
-
-# Planera en altan som håller i många år
 
 Många börjar bygga en altan direkt när virket kommer hem. Det är förståeligt – man vill komma igång. Men de bästa altanerna är nästan alltid resultatet av noggrann planering.
 

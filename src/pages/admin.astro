@@ -14,6 +14,7 @@
         --line: #dedbd2;
         --accent: #1b6b5d;
         --danger: #a73535;
+        --code-bg: #f1eee6;
       }
 
       * {
@@ -165,6 +166,34 @@
         margin-bottom: 18px;
         padding: 12px 14px;
       }
+
+      details {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        margin-bottom: 18px;
+        padding: 14px 18px;
+      }
+
+      summary {
+        cursor: pointer;
+        font-weight: 800;
+      }
+
+      pre {
+        background: var(--code-bg);
+        border-radius: 8px;
+        overflow-x: auto;
+        padding: 14px;
+        white-space: pre-wrap;
+      }
+
+      code {
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+        font-size: 0.92rem;
+      }
     </style>
   </head>
   <body>
@@ -175,6 +204,30 @@
         Klistra in en färdig artikel. Slug, datum och frontmatter skapas
         automatiskt när det behövs.
       </p>
+
+      <details open>
+        <summary>Rekommenderat format för taggar och beskrivning</summary>
+        <p>
+          Klistra helst in hela artikeln med YAML-frontmatter överst. Då sparas
+          titel, beskrivning och taggar korrekt. Börja direkt med <code>---</code>,
+          utan yttre <code>```md</code>.
+        </p>
+        <pre><code>---
+title: "Hur fungerar RAG?"
+description: "Kort sammanfattning som visas på artikelkortet."
+date: "2026-06-27"
+tags:
+  - AI
+  - RAG
+  - kunskap
+---
+
+Ingress eller första stycke här.
+
+## Rubrik
+
+Brödtext här.</code></pre>
+      </details>
 
       <form data-admin-form>
         <label>
@@ -197,8 +250,12 @@
           Markdown
           <textarea
             name="markdown"
-            placeholder="Skriv eller klistra in artikeln här. Frontmatter är frivilligt."
+            maxlength="750000"
+            placeholder={`---\ntitle: \"Hur fungerar RAG?\"\ndescription: \"Kort sammanfattning som visas på artikelkortet.\"\ndate: \"2026-06-27\"\ntags:\n  - AI\n  - RAG\n---\n\nSkriv artikeln här.`}
             required></textarea>
+          <span class="hint">
+            Frontmatter är frivilligt, men behövs om du vill styra taggar och beskrivning.
+          </span>
         </label>
 
         <button type="submit">Publicera</button>
@@ -291,6 +348,15 @@
           title: data.get("title"),
           markdown: data.get("markdown"),
         };
+
+        if (String(payload.markdown ?? "").length > 750000) {
+          showStatus(
+            "error",
+            "Artikeln är för stor för enkel admin-import. Dela upp den eller publicera via Git.",
+          );
+          publishButton.disabled = false;
+          return;
+        }
 
         try {
           const result = await requestJson("/api/publish", {
