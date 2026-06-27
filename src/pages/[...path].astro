@@ -1,0 +1,55 @@
+---
+import { render } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import {
+  formatDate,
+  getArticleCategory,
+  getArticleDescription,
+  getArticlePath,
+  getCategoryLabel,
+  getSortedArticles,
+} from "../lib/posts";
+
+export async function getStaticPaths() {
+  const articles = await getSortedArticles();
+
+  return articles.map((article) => ({
+    params: { path: getArticlePath(article.id) },
+    props: { article },
+  }));
+}
+
+const { article } = Astro.props;
+const { Content } = await render(article);
+const category = getArticleCategory(article.id);
+const description = getArticleDescription(article);
+---
+
+<BaseLayout
+  title={`${article.data.title} | Anteckningsbiblioteket`}
+  description={description}
+>
+  <article class="post-detail">
+    <a class="back-link" href="/">Tillbaka till alla artiklar</a>
+    <header class="post-header">
+      <div class="card-meta">
+        <span>{getCategoryLabel(category)}</span>
+        {
+          article.data.date && (
+            <time datetime={article.data.date.toISOString()}>
+              {formatDate(article.data.date)}
+            </time>
+          )
+        }
+      </div>
+      <h1>{article.data.title}</h1>
+      <p>{description}</p>
+      <div class="tags" aria-label="Taggar">
+        {article.data.tags.map((tag) => <span>{tag}</span>)}
+      </div>
+    </header>
+    <div class="prose">
+      <Content />
+    </div>
+  </article>
+</BaseLayout>

@@ -1,8 +1,9 @@
 ---
 title: "AI som tankepartner"
-description: "Anteckningar om hur AI kan hjälpa till att tänka klarare utan att ta över riktningen."
-date: "2026-06-27"
-tags: ["ai", "idéer", "skrivande"]
+tags:
+  - AI
+  - idéer
+  - skrivande
 ---
 
 AI fungerar bäst som tankepartner när den hjälper dig att se fler vägar, inte

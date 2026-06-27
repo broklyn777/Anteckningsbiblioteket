@@ -1,36 +1,65 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { formatDate, getPostSlug, getSortedPosts } from "../lib/posts";
+import {
+  formatDate,
+  getArticleCategory,
+  getArticleDescription,
+  getArticlePath,
+  getCategoryLabel,
+  getSortedArticles,
+} from "../lib/posts";
 
-const posts = await getSortedPosts();
-const allTags = Array.from(new Set(posts.flatMap((post) => post.data.tags))).sort(
-  (a, b) => a.localeCompare(b, "sv"),
-);
+const articles = await getSortedArticles();
+const allCategories = Array.from(
+  new Set(articles.map((article) => getArticleCategory(article.id))),
+).sort((a, b) => a.localeCompare(b, "sv"));
+const allTags = Array.from(
+  new Set(articles.flatMap((article) => article.data.tags)),
+).sort((a, b) => a.localeCompare(b, "sv"));
+const articleLabel = articles.length === 1 ? "artikel" : "artiklar";
 ---
 
-<BaseLayout title="Kunskapsbank" description="Sökbar personlig kunskapsbank.">
+<BaseLayout
+  title="Anteckningsbiblioteket"
+  description="Sökbart anteckningsbibliotek med artiklar i Markdown och MDX."
+>
   <section class="hero">
-    <p class="eyebrow">Personlig kunskap och inspiration</p>
-    <h1>Spara det som är värt att hitta igen.</h1>
+    <p class="eyebrow">Markdown in, publicerad artikel ut</p>
+    <h1>Anteckningsbiblioteket</h1>
     <p>
-      En enkel statisk webb för anteckningar, idéer och samtal som förtjänar
-      ett tydligare hem än ännu en lös textfil.
+      Spara bra diskussioner som vanliga MDX-filer i GitHub. Varje fil får egen
+      URL, blir sökbar och kan filtreras utan databas eller CMS.
     </p>
   </section>
 
   <section class="controls" aria-label="Sök och filtrera">
-    <label class="search-label" for="search">Sök</label>
-    <input
-      id="search"
-      class="search-input"
-      type="search"
-      placeholder="Sök i titel, beskrivning, taggar och innehåll"
-      autocomplete="off"
-    />
+    <div class="control-grid">
+      <div>
+        <label class="search-label" for="search">Sök</label>
+        <input
+          id="search"
+          class="search-input"
+          type="search"
+          placeholder="Sök i titel, taggar och innehåll"
+          autocomplete="off"
+        />
+      </div>
+      <div>
+        <label class="search-label" for="category">Kategori</label>
+        <select id="category" class="select-input">
+          <option value="all">Alla kategorier</option>
+          {
+            allCategories.map((category) => (
+              <option value={category}>{getCategoryLabel(category)}</option>
+            ))
+          }
+        </select>
+      </div>
+    </div>
 
     <div class="filter-row" aria-label="Taggfilter">
       <button class="tag-filter is-active" type="button" data-tag="all">
-        Alla
+        Alla taggar
       </button>
       {
         allTags.map((tag) => (
@@ -42,15 +71,22 @@ const allTags = Array.from(new Set(posts.flatMap((post) => post.data.tags))).sor
     </div>
   </section>
 
+  <p class="result-count" data-result-count>
+    Visar {articles.length} {articleLabel}
+  </p>
+
   <section class="post-list" aria-live="polite">
     {
-      posts.map((post) => {
-        const slug = getPostSlug(post.id);
+      articles.map((article) => {
+        const path = getArticlePath(article.id);
+        const category = getArticleCategory(article.id);
+        const description = getArticleDescription(article);
         const searchable = [
-          post.data.title,
-          post.data.description,
-          post.data.tags.join(" "),
-          post.body,
+          article.data.title,
+          description,
+          category,
+          article.data.tags.join(" "),
+          article.body,
         ]
           .join(" ")
           .toLocaleLowerCase("sv-SE");
@@ -59,17 +95,23 @@ const allTags = Array.from(new Set(posts.flatMap((post) => post.data.tags))).sor
           <article
             class="post-card"
             data-post-card
-            data-tags={post.data.tags.join(",")}
+            data-category={category}
+            data-tags={article.data.tags.join(",")}
             data-search={searchable}
           >
-            <a href={`/posts/${slug}/`}>
-              <time datetime={post.data.date.toISOString()}>
-                {formatDate(post.data.date)}
-              </time>
-              <h2>{post.data.title}</h2>
-              <p>{post.data.description}</p>
+            <a href={`/${path}/`}>
+              <div class="card-meta">
+                <span>{getCategoryLabel(category)}</span>
+                {article.data.date && (
+                  <time datetime={article.data.date.toISOString()}>
+                    {formatDate(article.data.date)}
+                  </time>
+                )}
+              </div>
+              <h2>{article.data.title}</h2>
+              <p>{description}</p>
               <div class="tags" aria-label="Taggar">
-                {post.data.tags.map((tag) => (
+                {article.data.tags.map((tag) => (
                   <span>{tag}</span>
                 ))}
               </div>
@@ -81,34 +123,42 @@ const allTags = Array.from(new Set(posts.flatMap((post) => post.data.tags))).sor
   </section>
 
   <p class="empty-state" data-empty-state hidden>
-    Inga poster matchar sökningen eller filtret.
+    Inga artiklar matchar sökningen eller filtren.
   </p>
 
   <script>
     const searchInput = document.querySelector("#search");
+    const categoryInput = document.querySelector("#category");
     const filterButtons = Array.from(document.querySelectorAll(".tag-filter"));
     const cards = Array.from(document.querySelectorAll("[data-post-card]"));
     const emptyState = document.querySelector("[data-empty-state]");
+    const resultCount = document.querySelector("[data-result-count]");
     let activeTag = "all";
 
     function updateResults() {
       const query = searchInput.value.trim().toLocaleLowerCase("sv-SE");
+      const activeCategory = categoryInput.value;
       let visibleCount = 0;
 
       for (const card of cards) {
         const tags = card.dataset.tags.split(",").filter(Boolean);
+        const matchesCategory =
+          activeCategory === "all" || card.dataset.category === activeCategory;
         const matchesTag = activeTag === "all" || tags.includes(activeTag);
         const matchesSearch = !query || card.dataset.search.includes(query);
-        const isVisible = matchesTag && matchesSearch;
+        const isVisible = matchesCategory && matchesTag && matchesSearch;
 
         card.hidden = !isVisible;
         if (isVisible) visibleCount += 1;
       }
 
+      const label = visibleCount === 1 ? "artikel" : "artiklar";
+      resultCount.textContent = `Visar ${visibleCount} ${label}`;
       emptyState.hidden = visibleCount !== 0;
     }
 
     searchInput.addEventListener("input", updateResults);
+    categoryInput.addEventListener("change", updateResults);
 
     for (const button of filterButtons) {
       button.addEventListener("click", () => {

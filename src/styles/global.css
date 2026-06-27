@@ -118,7 +118,14 @@ h3 {
   margin-bottom: 8px;
 }
 
-.search-input {
+.control-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+  gap: 14px;
+}
+
+.search-input,
+.select-input {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -127,7 +134,8 @@ h3 {
   padding: 13px 14px;
 }
 
-.search-input:focus {
+.search-input:focus,
+.select-input:focus {
   border-color: var(--accent);
   outline: 3px solid rgba(27, 107, 93, 0.16);
 }
@@ -141,6 +149,12 @@ h3 {
 
 .filter-row {
   margin-top: 14px;
+}
+
+.result-count {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin: 0 0 14px;
 }
 
 .tag-filter,
@@ -204,6 +218,20 @@ h3 {
 time {
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.card-meta {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+  gap: 10px;
+}
+
+.card-meta span {
+  color: var(--accent-strong);
+  font-weight: 750;
 }
 
 .post-card h2 {
@@ -312,6 +340,10 @@ time {
 
   .controls {
     padding: 14px;
+  }
+
+  .control-grid {
+    grid-template-columns: 1fr;
   }
 
   .post-list {

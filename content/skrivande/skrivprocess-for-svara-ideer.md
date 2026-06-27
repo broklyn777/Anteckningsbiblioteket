@@ -1,8 +1,9 @@
 ---
 title: "Skrivprocess för svåra idéer"
-description: "En enkel metod för att få ner halvklara tankar utan att fastna i perfektionism."
-date: "2026-06-24"
-tags: ["skrivande", "process", "idéer"]
+tags:
+  - skrivande
+  - process
+  - idéer
 ---
 
 När en idé känns viktig men svår att formulera kan det hjälpa att skriva i
