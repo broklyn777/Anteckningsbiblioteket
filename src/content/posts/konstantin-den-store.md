@@ -8,8 +8,6 @@ tags:
   - Kristendom
   - Samhälle
 ---
----
-
 title: "Konstantin den store – Från Constantius Chlorus död år 306 till Milanoöverenskommelsen år 313"
 subtitle: "Del I – Romarrikets kris, tetrarkin och Konstantins väg till makten"
 author: "Forskningsöversikt"
