@@ -81,6 +81,7 @@ YAML-frontmatter överst.
 ---
 title: "Hur fungerar RAG?"
 description: "Kort sammanfattning som visas på artikelkortet."
+category: "AI"
 date: "2026-06-27"
 tags:
   - AI
@@ -99,6 +100,8 @@ Viktigt:
 
 - Frontmatter måste börja på första raden med `---`.
 - Klistra helst inte in yttre kodstaket, alltså raden med tre backticks och `md`.
+- `category` är frivillig. Om den saknas används första mappen i artikelns id,
+  till exempel `posts`, `ai`, `skrivande` eller `planering`.
 - `tags` ska vara en YAML-lista, en tagg per rad.
 - Skriv inte en extra `# Titel` direkt efter frontmatter om den är samma som `title`.
 - Om du saknar frontmatter skapas `title`, `description`, `date` och tomma `tags` automatiskt.

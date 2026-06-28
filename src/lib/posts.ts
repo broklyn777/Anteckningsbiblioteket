@@ -19,7 +19,10 @@ export function getArticlePath(id: string) {
   return id.replace(/\.(md|mdx)$/i, "");
 }
 
-export function getArticleCategory(id: string) {
+export function getArticleCategory(article: Article) {
+  if (article.data.category) return article.data.category;
+
+  const id = article.id;
   const [category = "ovrigt"] = getArticlePath(id).split("/");
   return category;
 }

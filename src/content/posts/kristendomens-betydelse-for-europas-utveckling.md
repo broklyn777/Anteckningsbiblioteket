@@ -1,6 +1,7 @@
 ---
 title: "Kristendomens betydelse för Europas utveckling"
 description: "En balanserad genomgång av hur kristendomen har påverkat Europas politik, kultur, utbildning och samhällsutveckling genom historien."
+category: "Religion"
 date: "2026-06-27"
 tags:
 - Historia

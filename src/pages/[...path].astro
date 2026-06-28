@@ -22,7 +22,7 @@ export async function getStaticPaths() {
 
 const { article } = Astro.props;
 const { Content } = await render(article);
-const category = getArticleCategory(article.id);
+const category = getArticleCategory(article);
 const title = getArticleTitle(article);
 const description = getArticleDescription(article);
 ---

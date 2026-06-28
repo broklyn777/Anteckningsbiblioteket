@@ -12,7 +12,7 @@ import {
 
 const articles = await getSortedArticles();
 const allCategories = Array.from(
-  new Set(articles.map((article) => getArticleCategory(article.id))),
+  new Set(articles.map((article) => getArticleCategory(article))),
 ).sort((a, b) => a.localeCompare(b, "sv"));
 const allTags = Array.from(
   new Set(articles.flatMap((article) => article.data.tags)),
@@ -80,7 +80,7 @@ const articleLabel = articles.length === 1 ? "artikel" : "artiklar";
     {
       articles.map((article) => {
         const path = getArticlePath(article.id);
-        const category = getArticleCategory(article.id);
+        const category = getArticleCategory(article);
         const title = getArticleTitle(article);
         const description = getArticleDescription(article);
         const searchable = [
@@ -101,7 +101,7 @@ const articleLabel = articles.length === 1 ? "artikel" : "artiklar";
             data-tags={article.data.tags.join(",")}
             data-search={searchable}
           >
-            <a href={`/${path}/`}>
+            <a class="post-card-link" href={`/${path}/`}>
               <div class="card-meta">
                 <span>{getCategoryLabel(category)}</span>
                 {article.data.date && (
@@ -112,12 +112,19 @@ const articleLabel = articles.length === 1 ? "artikel" : "artiklar";
               </div>
               <h2>{title}</h2>
               <p>{description}</p>
-              <div class="tags" aria-label="Taggar">
-                {article.data.tags.map((tag) => (
-                  <span>{tag}</span>
-                ))}
-              </div>
             </a>
+            <div class="tags" aria-label="Taggar">
+              {article.data.tags.map((tag) => (
+                <button
+                  class="card-tag"
+                  type="button"
+                  data-card-tag={tag}
+                  aria-label={`Filtrera på taggen ${tag}`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
           </article>
         );
       })
@@ -164,14 +171,26 @@ const articleLabel = articles.length === 1 ? "artikel" : "artiklar";
 
     for (const button of filterButtons) {
       button.addEventListener("click", () => {
-        activeTag = button.dataset.tag;
-
-        for (const item of filterButtons) {
-          item.classList.toggle("is-active", item === button);
-        }
-
-        updateResults();
+        setActiveTag(button.dataset.tag);
       });
+    }
+
+    function setActiveTag(tag) {
+      activeTag = tag ?? "all";
+
+      for (const item of filterButtons) {
+        item.classList.toggle("is-active", item.dataset.tag === activeTag);
+      }
+
+      updateResults();
+    }
+
+    function selectCardTag(event) {
+      setActiveTag(event.currentTarget.dataset.cardTag);
+    }
+
+    for (const tag of document.querySelectorAll("[data-card-tag]")) {
+      tag.addEventListener("click", selectCardTag);
     }
   </script>
 </BaseLayout>
