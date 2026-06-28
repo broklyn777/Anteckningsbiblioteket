@@ -2,9 +2,12 @@
 title: "Konstantin den store"
 description: "title: \"Konstantin den store – Från Constantius Chlorus död år 306 till Milanoöverenskommelsen år 313\" subtitle: \"Del I – Romarrikets kris, tetrark..."
 date: "2026-06-27"
-tags: []
+tags:
+  - Historia
+  - Romarriket
+  - Kristendom
+  - Samhälle
 ---
-
 ---
 
 title: "Konstantin den store – Från Constantius Chlorus död år 306 till Milanoöverenskommelsen år 313"
