@@ -4,8 +4,7 @@ title: "Om Evagrios plötsligt kom till Stockholm"
 description: "En tankeövning om hur Evagrios Pontikos kanske skulle betrakta vår tid och vad han skulle känna igen i den moderna människans inre kamp."
 date: "2026-06-27"
 tags:
-
-- Evagrios
+  - Evagrios
   - Ökenfäderna
   - Reflektion
   - Logismoi

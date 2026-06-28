@@ -80,6 +80,83 @@ function insertFrontmatterFields(markdown: string, fields: string[]) {
   return markdown.replace(/^---\r?\n/, `---\n${fields.join("\n")}\n`);
 }
 
+function splitTagValue(value: string) {
+  const cleanedValue = value.replace(/^[\s"'[]+|[\s"'\]]+$/g, "").trim();
+  if (!cleanedValue) return [];
+
+  return cleanedValue
+    .split(/\s+[-–—]\s+|,/)
+    .map((tag) => tag.replace(/^[\s"'[]+|[\s"'\]]+$/g, "").trim())
+    .filter(Boolean);
+}
+
+function formatYamlTag(tag: string) {
+  return tag.includes(":") || tag.includes("#")
+    ? `"${tag.replace(/"/g, '\\"')}"`
+    : tag;
+}
+
+function normalizeFrontmatterTags(markdown: string) {
+  const frontmatter = getFrontmatter(markdown);
+  if (!frontmatter) return markdown;
+
+  const lines = frontmatter.value.split(/\r?\n/);
+  const normalizedLines: string[] = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const tagsMatch = line.match(/^tags:\s*(.*?)\s*$/);
+
+    if (!tagsMatch) {
+      normalizedLines.push(line);
+      continue;
+    }
+
+    const inlineValue = tagsMatch[1];
+
+    if (inlineValue && !inlineValue.startsWith("[")) {
+      const tags = splitTagValue(inlineValue);
+      normalizedLines.push("tags:");
+      normalizedLines.push(...tags.map((tag) => `  - ${formatYamlTag(tag)}`));
+      continue;
+    }
+
+    if (inlineValue) {
+      normalizedLines.push(line);
+      continue;
+    }
+
+    const blockLines: string[] = [];
+    let nextIndex = index + 1;
+
+    while (nextIndex < lines.length) {
+      const nextLine = lines[nextIndex];
+      if (/^---\s*$/.test(nextLine) || /^[A-Za-z][\w-]*:\s*/.test(nextLine)) {
+        break;
+      }
+
+      blockLines.push(nextLine);
+      nextIndex += 1;
+    }
+
+    const tags = blockLines.flatMap((blockLine) => {
+      const bullet = blockLine.match(/^\s*[-*]\s+(.+?)\s*$/);
+      return bullet ? splitTagValue(bullet[1]) : [];
+    });
+
+    if (tags.length === 0) {
+      normalizedLines.push(line, ...blockLines);
+    } else {
+      normalizedLines.push("tags:");
+      normalizedLines.push(...tags.map((tag) => `  - ${formatYamlTag(tag)}`));
+    }
+
+    index = nextIndex - 1;
+  }
+
+  return `${normalizedLines.join("\n").trimEnd()}\n${frontmatter.body}`;
+}
+
 function normalizeFrontmatterTagBullets(markdown: string) {
   const frontmatter = getFrontmatter(markdown);
   if (!frontmatter) return markdown;
@@ -183,7 +260,9 @@ function ensureMetadata(markdown: string, title: string) {
   const articleTitle = frontmatterTitle ?? title;
 
   if (frontmatterPattern.test(markdown)) {
-    const normalizedMarkdown = normalizeFrontmatterTagBullets(markdown);
+    const normalizedMarkdown = normalizeFrontmatterTags(
+      normalizeFrontmatterTagBullets(markdown),
+    );
     const frontmatter = getFrontmatter(normalizedMarkdown)?.value ?? "";
     const missingFields: string[] = [];
     const body = stripFrontmatter(normalizedMarkdown);

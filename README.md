@@ -36,6 +36,11 @@ När en publicering lyckas sparas lösenordet lokalt i webbläsaren, så nästa
 artikel kan publiceras utan att skriva lösenordet igen. På `/admin` finns också
 en knapp för att glömma det sparade lösenordet.
 
+Längre ner på `/admin` kan du redigera artiklar som ligger i
+`src/content/posts/`. Välj artikel, klicka `Ladda artikel`, ändra Markdown och
+klicka `Spara ändringar`. Ändringen sparas i GitHub och Vercel bygger om sidan
+automatiskt.
+
 Längre ner på `/admin` kan du också radera artiklar som ligger i
 `src/content/posts/`. Raderingen tar bort Markdown-filen från GitHub och Vercel
 bygger om sidan automatiskt.

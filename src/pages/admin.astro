@@ -85,6 +85,7 @@ const deletableArticles = (await getSortedArticles())
         padding: 18px;
       }
 
+      .edit-panel,
       .delete-panel {
         background: var(--surface);
         border: 1px solid var(--line);
@@ -93,6 +94,12 @@ const deletableArticles = (await getSortedArticles())
         gap: 14px;
         margin-top: 28px;
         padding: 18px;
+      }
+
+      .edit-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
       }
 
       .admin-panel {
@@ -302,6 +309,58 @@ Brödtext här.</code></pre>
         </button>
       </form>
 
+      <section class="edit-panel" aria-labelledby="edit-title">
+        <div>
+          <h2 id="edit-title">Redigera artikel</h2>
+          <p>
+            Laddar Markdown från GitHub och sparar ändringar. Vercel bygger om
+            automatiskt efteråt.
+          </p>
+        </div>
+
+        {
+          deletableArticles.length > 0 ? (
+            <>
+              <label>
+                Artikel
+                <select data-edit-path>
+                  {deletableArticles.map((article) => (
+                    <option value={article.githubPath} data-url={article.url}>
+                      {article.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div class="edit-actions">
+                <button class="secondary-button" type="button" data-load-edit>
+                  Ladda artikel
+                </button>
+                <button type="button" data-save-edit disabled>
+                  Spara ändringar
+                </button>
+              </div>
+
+              <label>
+                Markdown
+                <textarea
+                  name="editMarkdown"
+                  maxlength="750000"
+                  placeholder="Ladda en artikel för att redigera den."
+                  data-edit-markdown
+                  disabled></textarea>
+                <span class="hint">
+                  Hela filen sparas. Taggar städas automatiskt om de råkat bli
+                  felindenterade eller skrivna med bindestreck mellan orden.
+                </span>
+              </label>
+            </>
+          ) : (
+            <p>Det finns inga redigerbara artiklar i src/content/posts/.</p>
+          )
+        }
+      </section>
+
       <section class="delete-panel" aria-labelledby="delete-title">
         <div>
           <h2 id="delete-title">Radera artikel</h2>
@@ -347,6 +406,10 @@ Brödtext här.</code></pre>
       const publishButton = form.querySelector('button[type="submit"]');
       const clearPasswordButton = document.querySelector("[data-clear-password]");
       const passwordInput = form.querySelector('input[name="password"]');
+      const editPathInput = document.querySelector("[data-edit-path]");
+      const loadEditButton = document.querySelector("[data-load-edit]");
+      const saveEditButton = document.querySelector("[data-save-edit]");
+      const editMarkdownInput = document.querySelector("[data-edit-markdown]");
       const deleteButton = document.querySelector("[data-delete-button]");
       const deletePathInput = document.querySelector("[data-delete-path]");
 
@@ -409,6 +472,94 @@ Brödtext här.</code></pre>
         passwordInput.value = "";
         clearPasswordButton.hidden = true;
         showStatus("success", "Sparat lösenord rensades.");
+      });
+
+      loadEditButton?.addEventListener("click", async () => {
+        const path = editPathInput?.value ?? "";
+        const password = passwordInput.value;
+
+        if (!password) {
+          showStatus("error", "Skriv adminlösenordet först.");
+          passwordInput.focus();
+          return;
+        }
+
+        loadEditButton.disabled = true;
+        showStatus("success", "Laddar artikel...");
+
+        try {
+          const result = await requestJson("/api/edit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "load", password, path }),
+          });
+
+          localStorage.setItem(passwordStorageKey, password);
+          clearPasswordButton.hidden = false;
+          editMarkdownInput.value = result.markdown;
+          editMarkdownInput.disabled = false;
+          saveEditButton.disabled = false;
+          showStatus("success", "Artikeln laddades. Du kan redigera och spara.");
+        } catch (error) {
+          console.error(error);
+          showStatus("error", error.message);
+        } finally {
+          loadEditButton.disabled = false;
+        }
+      });
+
+      saveEditButton?.addEventListener("click", async () => {
+        const path = editPathInput?.value ?? "";
+        const selectedOption = editPathInput?.selectedOptions?.[0];
+        const title = selectedOption?.textContent?.trim() ?? "vald artikel";
+        const articleUrl = selectedOption?.dataset.url ?? "/";
+        const password = passwordInput.value;
+        const markdown = editMarkdownInput?.value ?? "";
+
+        if (!password) {
+          showStatus("error", "Skriv adminlösenordet först.");
+          passwordInput.focus();
+          return;
+        }
+
+        if (!markdown.trim()) {
+          showStatus("error", "Markdown får inte vara tom.");
+          editMarkdownInput?.focus();
+          return;
+        }
+
+        const confirmed = window.confirm(`Spara ändringar i "${title}"?`);
+        if (!confirmed) return;
+
+        saveEditButton.disabled = true;
+        showStatus("success", "Sparar ändringar...");
+
+        try {
+          await requestJson("/api/edit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "save", password, path, markdown }),
+          });
+
+          localStorage.setItem(passwordStorageKey, password);
+          clearPasswordButton.hidden = false;
+
+          const wrapper = document.createElement("div");
+          const text = document.createElement("p");
+          const articleLink = document.createElement("a");
+
+          text.textContent = "Ändringarna sparades. Vercel bygger om automatiskt.";
+          articleLink.href = articleUrl;
+          articleLink.textContent = "Öppna artikeln";
+          wrapper.append(text, articleLink);
+
+          showStatus("success", wrapper);
+        } catch (error) {
+          console.error(error);
+          showStatus("error", error.message);
+        } finally {
+          saveEditButton.disabled = false;
+        }
       });
 
       deleteButton?.addEventListener("click", async () => {
