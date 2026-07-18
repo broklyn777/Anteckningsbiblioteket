@@ -1,0 +1,170 @@
+<aside class="reading-player" data-reading-player transition:persist="reading-player" hidden aria-label="Uppläsare">
+  <div class="reading-player__copy">
+    <span class="reading-player__label">Lyssnar nu</span>
+    <strong data-reading-title>Ingen artikel vald</strong>
+    <span class="reading-player__status" data-reading-status>Välj en artikel för att börja lyssna.</span>
+  </div>
+  <div class="reading-player__controls">
+    <button type="button" data-reading-pause aria-label="Pausa uppläsningen">Pausa</button>
+    <button type="button" data-reading-stop aria-label="Stoppa uppläsningen">Stoppa</button>
+    <label class="reading-player__speed">
+      <span>Hastighet</span>
+      <select data-reading-rate aria-label="Uppläsningshastighet">
+        <option value="0.8">0,8×</option>
+        <option value="1" selected>1×</option>
+        <option value="1.2">1,2×</option>
+        <option value="1.5">1,5×</option>
+      </select>
+    </label>
+  </div>
+</aside>
+
+<script>
+  const player = document.querySelector("[data-reading-player]");
+  const titleElement = player?.querySelector("[data-reading-title]");
+  const statusElement = player?.querySelector("[data-reading-status]");
+  const pauseButton = player?.querySelector("[data-reading-pause]");
+  const stopButton = player?.querySelector("[data-reading-stop]");
+  const rateInput = player?.querySelector("[data-reading-rate]");
+
+  if (
+    player &&
+    titleElement &&
+    statusElement &&
+    pauseButton &&
+    stopButton &&
+    rateInput &&
+    "speechSynthesis" in window
+  ) {
+    const speech = window.speechSynthesis;
+    let chunks = [];
+    let chunkIndex = 0;
+    let currentTitle = "";
+    let isPaused = false;
+
+    const updateStatus = (message) => {
+      statusElement.textContent = message;
+    };
+
+    const splitText = (text) => {
+      const sentences = text.replace(/\s+/g, " ").trim().split(/(?<=[.!?])\s+/);
+      const result = [];
+      let buffer = "";
+
+      for (const sentence of sentences) {
+        if (!sentence) continue;
+        if ((buffer + " " + sentence).trim().length > 220 && buffer) {
+          result.push(buffer.trim());
+          buffer = sentence;
+        } else {
+          buffer = `${buffer} ${sentence}`.trim();
+        }
+      }
+
+      if (buffer) result.push(buffer.trim());
+      return result;
+    };
+
+    const speakNext = () => {
+      if (chunkIndex >= chunks.length) {
+        updateStatus("Uppläsningen är klar.");
+        pauseButton.textContent = "Pausa";
+        isPaused = false;
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(chunks[chunkIndex]);
+      utterance.lang = "sv-SE";
+      utterance.rate = Number(rateInput.value);
+      utterance.pitch = 1;
+      utterance.onstart = () => {
+        updateStatus(`Del ${chunkIndex + 1} av ${chunks.length}`);
+        pauseButton.textContent = "Pausa";
+        isPaused = false;
+      };
+      utterance.onend = () => {
+        chunkIndex += 1;
+        speakNext();
+      };
+      utterance.onerror = (event) => {
+        if (event.error !== "canceled" && event.error !== "interrupted") {
+          updateStatus("Uppläsningen kunde inte fortsätta.");
+        }
+      };
+
+      speech.speak(utterance);
+    };
+
+    const startReading = (article) => {
+      const articleTitle = article.querySelector("[data-reading-title]")?.textContent?.trim();
+      const content = article.querySelector("[data-reading-content]")?.textContent?.trim();
+      if (!articleTitle || !content) return;
+
+      speech.cancel();
+      currentTitle = articleTitle;
+      chunks = splitText(`${articleTitle}. ${content}`);
+      chunkIndex = 0;
+      titleElement.textContent = currentTitle;
+      player.hidden = false;
+      updateStatus("Förbereder uppläsningen …");
+      speakNext();
+
+      if ("mediaSession" in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: currentTitle,
+          artist: "Anteckningsbiblioteket",
+          album: "Uppläsning",
+        });
+      }
+    };
+
+    document.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      const readButton = target.closest("[data-read-article]");
+      if (readButton) {
+        const article = readButton.closest("article");
+        if (article) startReading(article);
+      }
+    });
+
+    pauseButton.addEventListener("click", () => {
+      if (!speech.speaking && !speech.paused) return;
+      if (speech.paused) {
+        speech.resume();
+        pauseButton.textContent = "Pausa";
+        updateStatus(`Del ${chunkIndex + 1} av ${chunks.length}`);
+        isPaused = false;
+      } else {
+        speech.pause();
+        pauseButton.textContent = "Fortsätt";
+        updateStatus("Pausad");
+        isPaused = true;
+      }
+    });
+
+    stopButton.addEventListener("click", () => {
+      speech.cancel();
+      chunks = [];
+      chunkIndex = 0;
+      updateStatus("Uppläsningen stoppad.");
+      pauseButton.textContent = "Pausa";
+      isPaused = false;
+    });
+
+    rateInput.addEventListener("change", () => {
+      if (!speech.speaking && !speech.paused) return;
+      const wasPaused = isPaused;
+      speech.cancel();
+      speakNext();
+      if (wasPaused) speech.pause();
+    });
+
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.setActionHandler("play", () => speech.resume());
+      navigator.mediaSession.setActionHandler("pause", () => speech.pause());
+      navigator.mediaSession.setActionHandler("stop", () => speech.cancel());
+    }
+  }
+</script>
