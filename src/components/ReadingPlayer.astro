@@ -20,12 +20,12 @@
 </aside>
 
 <script>
-  const player = document.querySelector("[data-reading-player]");
+  const player = document.querySelector<HTMLElement>("[data-reading-player]");
   const titleElement = player?.querySelector("[data-reading-title]");
   const statusElement = player?.querySelector("[data-reading-status]");
   const pauseButton = player?.querySelector("[data-reading-pause]");
   const stopButton = player?.querySelector("[data-reading-stop]");
-  const rateInput = player?.querySelector("[data-reading-rate]");
+  const rateInput = player?.querySelector<HTMLSelectElement>("[data-reading-rate]");
 
   if (
     player &&
@@ -37,16 +37,16 @@
     "speechSynthesis" in window
   ) {
     const speech = window.speechSynthesis;
-    let chunks = [];
+    let chunks: string[] = [];
     let chunkIndex = 0;
     let currentTitle = "";
     let isPaused = false;
 
-    const updateStatus = (message) => {
+    const updateStatus = (message: string) => {
       statusElement.textContent = message;
     };
 
-    const splitText = (text) => {
+    const splitText = (text: string) => {
       const sentences = text.replace(/\s+/g, " ").trim().split(/(?<=[.!?])\s+/);
       const result = [];
       let buffer = "";
@@ -65,7 +65,18 @@
       return result;
     };
 
+    const selectVoice = () => {
+      const voices = speech.getVoices();
+      return (
+        voices.find((voice) => voice.lang.toLocaleLowerCase() === "sv-se") ??
+        voices.find((voice) => voice.lang.toLocaleLowerCase().startsWith("sv")) ??
+        voices.find((voice) => voice.default) ??
+        voices[0]
+      );
+    };
+
     const speakNext = () => {
+      if (isPaused || chunks.length === 0) return;
       if (chunkIndex >= chunks.length) {
         updateStatus("Uppläsningen är klar.");
         pauseButton.textContent = "Pausa";
@@ -74,7 +85,13 @@
       }
 
       const utterance = new SpeechSynthesisUtterance(chunks[chunkIndex]);
-      utterance.lang = "sv-SE";
+      const voice = selectVoice();
+      if (voice) {
+        utterance.voice = voice;
+        utterance.lang = voice.lang;
+      } else {
+        utterance.lang = "sv-SE";
+      }
       utterance.rate = Number(rateInput.value);
       utterance.pitch = 1;
       utterance.onstart = () => {
@@ -83,6 +100,7 @@
         isPaused = false;
       };
       utterance.onend = () => {
+        if (isPaused) return;
         chunkIndex += 1;
         speakNext();
       };
@@ -95,7 +113,7 @@
       speech.speak(utterance);
     };
 
-    const startReading = (article) => {
+    const startReading = (article: HTMLElement) => {
       const articleTitle = article.querySelector("[data-reading-title]")?.textContent?.trim();
       const content = article.querySelector("[data-reading-content]")?.textContent?.trim();
       if (!articleTitle || !content) return;
@@ -104,6 +122,7 @@
       currentTitle = articleTitle;
       chunks = splitText(`${articleTitle}. ${content}`);
       chunkIndex = 0;
+      isPaused = false;
       titleElement.textContent = currentTitle;
       player.hidden = false;
       updateStatus("Förbereder uppläsningen …");
@@ -130,17 +149,20 @@
     });
 
     pauseButton.addEventListener("click", () => {
-      if (!speech.speaking && !speech.paused) return;
-      if (speech.paused) {
+      if (isPaused) {
+        // Mobile browsers can leave SpeechSynthesis paused forever. Restart
+        // the current short chunk instead of relying on resume().
+        isPaused = false;
         speech.resume();
+        speech.cancel();
         pauseButton.textContent = "Pausa";
         updateStatus(`Del ${chunkIndex + 1} av ${chunks.length}`);
-        isPaused = false;
-      } else {
-        speech.pause();
+        speakNext();
+      } else if (speech.speaking) {
+        isPaused = true;
+        speech.cancel();
         pauseButton.textContent = "Fortsätt";
         updateStatus("Pausad");
-        isPaused = true;
       }
     });
 
@@ -154,16 +176,26 @@
     });
 
     rateInput.addEventListener("change", () => {
-      if (!speech.speaking && !speech.paused) return;
+      if (!chunks.length || (!speech.speaking && !isPaused)) return;
       const wasPaused = isPaused;
       speech.cancel();
+      isPaused = false;
       speakNext();
-      if (wasPaused) speech.pause();
+      if (wasPaused) {
+        isPaused = true;
+        speech.cancel();
+      }
     });
 
     if ("mediaSession" in navigator) {
       navigator.mediaSession.setActionHandler("play", () => speech.resume());
-      navigator.mediaSession.setActionHandler("pause", () => speech.pause());
+      navigator.mediaSession.setActionHandler("pause", () => {
+        if (!speech.speaking) return;
+        speech.pause();
+        isPaused = true;
+        pauseButton.textContent = "Fortsätt";
+        updateStatus("Pausad");
+      });
       navigator.mediaSession.setActionHandler("stop", () => speech.cancel());
     }
   }
