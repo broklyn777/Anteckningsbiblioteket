@@ -1,5 +1,5 @@
 ---
-title: "Hur fungerar RAG?"
+title: " Emma – arbetsmanus v1"
 description: "Kort sammanfattning som visas på artikelkortet."
 date: "2026-06-27"
 tags:
